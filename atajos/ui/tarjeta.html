@@ -115,6 +115,8 @@
   .ctrls button:active { transform: scale(.9); }
   .ctrls .grande { width: 50px; height: 50px; background: rgba(255,255,255,.92); color: #111; }
   .ctrls .grande:hover { background: #fff; }
+  .abrir-sp { display: flex; align-items: center; gap: 5px; margin: 8px auto 0; height: 24px; padding: 0 10px; border-radius: 99px; font-size: 11.5px; font-weight: 500; color: var(--label3); transition: color .15s, background .15s; }
+  .abrir-sp:hover { color: var(--label); background: var(--fill); }
   .boton { height: 32px; padding: 0 14px; border-radius: 99px; background: var(--fill); font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
   .boton:hover { background: var(--fill2); }
   .boton.acento { background: var(--accent); color: #fff; }
@@ -215,12 +217,15 @@ const VISTAS = {
   async spotify() {
     card.innerHTML = `<div class="mus"><div class="port" id="port"></div><div style="min-width:0;flex:1"><div class="t" id="st">Spotify</div><div class="a" id="sa"></div><div class="al" id="sal"></div></div></div>
       <div class="prog"><div class="barra"><i id="sp"></i></div><div class="tiempos"><span id="t1">0:00</span><span id="t2">0:00</span></div></div>
-      <div class="ctrls"><button data-a="previous track">${I.ant}</button><button class="grande" data-a="playpause" id="pp">${I.play}</button><button data-a="next track">${I.sig}</button></div>`;
+      <div class="ctrls"><button data-a="previous track">${I.ant}</button><button class="grande" data-a="playpause" id="pp">${I.play}</button><button data-a="next track">${I.sig}</button></div>
+      <button class="abrir-sp" id="abrirSpotify">Open Spotify <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h5.5V7M8.5 1.5 1.5 8.5"/></svg></button>`;
+    $('#abrirSpotify').onclick = () => { api.spotify_accion('abrir'); api.cerrar_tarjeta(); };
     const pintar = (d) => {
       if (tipo !== 'spotify') return;
       if (!d.abierto) {
         $('#st').textContent = 'Spotify is closed'; $('#sa').textContent = 'Open it to see what’s playing'; $('#sal').textContent = '';
         $('.ctrls').innerHTML = '<button class="boton acento" id="abrirSp" style="width:auto;height:32px">Open Spotify</button>';
+        $('#abrirSpotify')?.remove();  // the big button already does it
         $('#abrirSp').onclick = async () => { await api.spotify_accion('abrir'); setTimeout(async () => { if (tipo === 'spotify') VISTAS.spotify(); }, 2500); };
         return;
       }
