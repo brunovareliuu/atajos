@@ -76,10 +76,11 @@
   /* several at once: ⇧-click (or ⌘-click) rows */
   .fila.cop.sel { background: rgba(10, 132, 255, .2); box-shadow: inset 0 0 0 1px rgba(10, 132, 255, .55); }
   .fila.cop.sel:hover { background: rgba(10, 132, 255, .26); }
-  .seleccion { display: none; align-items: center; gap: 8px; margin: 8px -4px 0; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--fill); }
+  .seleccion { display: none; align-items: center; gap: 6px; margin: 8px -4px 0; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--fill); }
   .seleccion.si { display: flex; animation: cambia .2s ease-out both; }
-  .seleccion span { flex: 1; font-size: 12.5px; font-weight: 600; }
-  .seleccion .boton { height: 28px; padding: 0 12px; font-size: 12px; }
+  .seleccion .boton.hecho { color: var(--label); }
+  .seleccion span { flex: 1; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .seleccion .boton { height: 28px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
   .seleccion .boton.copiar-sel { background: rgba(52, 199, 89, .2); color: #4cd964; }
   .seleccion .boton.copiar-sel:hover { background: rgba(52, 199, 89, .32); }
   .seleccion .boton.copiar-sel.hecho { color: #34c759; }
@@ -265,12 +266,18 @@ const VISTAS = {
 
   async copiados() {
     card.innerHTML = `<h2>Clipboard</h2><div class="buscar">${I.lupa}<input id="q" placeholder="Search"></div><div class="lista" id="cl"></div>
-      <div class="seleccion" id="sel"><span id="seln"></span><button class="boton" id="sel-no">Clear</button><button class="boton copiar-sel" id="sel-si">Copy</button></div>
+      <div class="seleccion" id="sel"><span id="seln"></span><button class="boton" id="sel-no">Clear</button><button class="boton" id="sel-rutas" title="Copy the paths of the images and files">Copy paths</button><button class="boton copiar-sel" id="sel-si">Copy</button></div>
       <div class="pista" id="pista">⇧-click to select several</div>`;
     sel.clear(); ultimaFila = null;
     $('#q').addEventListener('input', pintarCopiados);
     $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') sel.size ? $('#sel-si').click() : $('#cl .btn-copiar[data-copiar]')?.click(); });
     $('#sel-no').onclick = limpiarSel;
+    $('#sel-rutas').onclick = async () => {
+      const b = $('#sel-rutas');
+      await api.copiar_rutas([...sel]);
+      b.textContent = 'Copied'; b.classList.add('hecho');
+      setTimeout(() => limpiarSel(), 1100);
+    };
     $('#sel-si').onclick = async () => {
       const b = $('#sel-si'), n = sel.size;
       await api.copiar_varios([...sel]);
@@ -393,6 +400,9 @@ function pintarSel() {
   document.querySelectorAll('#cl .fila.cop').forEach(f => f.classList.toggle('sel', sel.has(+f.dataset.i)));
   const b = $('#sel-si'); if (!b) return;
   b.classList.remove('hecho'); b.textContent = `Copy ${sel.size}`;
+  // "Copy paths" only when the selection has images or files
+  const r = $('#sel-rutas'); r.classList.remove('hecho'); r.textContent = 'Copy paths';
+  r.style.display = copiados.some(c => sel.has(c.i) && c.tipo !== 'texto') ? '' : 'none';
   $('#seln').textContent = `${sel.size} selected`;
   $('#sel').classList.toggle('si', sel.size > 0);
   $('#pista').style.display = sel.size ? 'none' : '';

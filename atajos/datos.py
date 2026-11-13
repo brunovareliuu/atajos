@@ -157,10 +157,37 @@ class Copiados:
                 rutas += x["rutas"]
         pb.clearContents()
         if rutas:
-            pb.writeObjects_([NSURL.fileURLWithPath_(r) for r in rutas] + (["\n\n".join(textos)] if textos else []))
+            from AppKit import NSPasteboardItem
+            from Foundation import NSData
+            objetos = []
+            for r in rutas:  # each one as a file and, if it's an image, also as the picture itself
+                it = NSPasteboardItem.alloc().init()
+                it.setString_forType_(NSURL.fileURLWithPath_(r).absoluteString(), "public.file-url")
+                if r.lower().endswith(".png"):
+                    d = NSData.dataWithContentsOfFile_(r)
+                    if d:
+                        it.setData_forType_(d, "public.png")
+                objetos.append(it)
+            if textos:
+                it = NSPasteboardItem.alloc().init()
+                it.setString_forType_("\n\n".join(textos), "public.utf8-plain-text")
+                objetos.append(it)
+            pb.writeObjects_(objetos)
         else:
             pb.setString_forType_("\n\n".join(textos), "public.utf8-plain-text")
         self.ignorar_cambio = pb.changeCount()  # don't add the combination to the history
+        self.ultimo = self.ignorar_cambio
+        return True
+
+    def copiar_rutas(self, indices, pb):
+        """The paths of the selected files and images, one per line."""
+        texto = "\n".join(r for i in indices if 0 <= i < len(self.items) and self.items[i]["tipo"] != "texto"
+                          for r in self.ruta(i).split("\n"))
+        if not texto:
+            return False
+        pb.clearContents()
+        pb.setString_forType_(texto, "public.utf8-plain-text")
+        self.ignorar_cambio = pb.changeCount()
         self.ultimo = self.ignorar_cambio
         return True
 
