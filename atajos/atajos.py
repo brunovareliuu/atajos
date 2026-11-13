@@ -508,6 +508,8 @@ class App(NSObject):
 
         tw = TARJETA_W + PICO
         t = panel_base(PanelTarjeta, tw, 300)
+        # No window shadow: once the card is clicked (key window) macOS draws it as a square frame.
+        t.setHasShadow_(False)
         cont = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, tw, 300))
         g = vidrio_oscuro(NSMakeRect(0, 0, TARJETA_W, 300), 22, tarjeta=True)
         g.setAutoresizingMask_(16)  # flexible height; the fixed width leaves the pointer strip free
@@ -529,6 +531,8 @@ class App(NSObject):
         threading.Thread(target=self.bucleEstado, daemon=True).start()
 
         NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(1 << 1 | 1 << 3, self.clicAfuera)
+        NSWorkspace.sharedWorkspace().notificationCenter().addObserver_selector_name_object_(
+            self, "espacioCambio:", "NSWorkspaceActiveSpaceDidChangeNotification", None)
         NSNotificationCenter.defaultCenter().addObserver_selector_name_object_(
             self, "pantallasCambiaron:", "NSApplicationDidChangeScreenParametersNotification", None)
         NSDistributedNotificationCenter.defaultCenter().addObserver_selector_name_object_(
@@ -549,7 +553,29 @@ class App(NSObject):
 
     @objc.python_method
     def pantalla(self):
+        """The screen you're using: the one with the mouse (with two monitors, mainScreen can be the other one)."""
+        m = NSEvent.mouseLocation()
+        for sc in NSScreen.screens():
+            r = sc.frame()
+            if r.origin.x <= m.x <= r.origin.x + r.size.width and r.origin.y <= m.y <= r.origin.y + r.size.height:
+                return sc
         return NSScreen.mainScreen() or NSScreen.screens()[0]
+
+    @objc.python_method
+    def barraEnOtraPantalla(self):
+        a, b = self.pantallaDeBarra().frame(), self.pantalla().frame()
+        return (a.origin.x, a.origin.y, a.size.width) != (b.origin.x, b.origin.y, b.size.width)
+
+    @objc.python_method
+    def traerBarra(self):
+        """Moves the open bar to the screen you're on: it slides out there."""
+        self.cerrarTarjeta()
+        self.barra.setFrame_display_(self.marcoBarra(None, True), False)
+        animar(self.barra, self.marcoBarra(), 0.32)
+
+    def espacioCambio_(self, _):
+        if self.barra_visible and self.barraEnOtraPantalla():
+            self.traerBarra()
 
     @objc.python_method
     def marcoBarra(self, h=None, escondida=False):
@@ -659,6 +685,9 @@ class App(NSObject):
 
     @objc.python_method
     def alternarBarra(self, lado="derecha"):
+        if self.barra_visible and lado == self.lado and self.barraEnOtraPantalla():
+            self.traerBarra()  # it's open on the other monitor: bring it here instead of hiding it
+            return
         if self.barra_visible and lado != self.lado:
             # Open on the other edge: hide it there and bring it in on this one.
             self.cerrarTarjeta()
