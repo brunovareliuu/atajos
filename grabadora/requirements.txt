@@ -1,0 +1,8 @@
+mlx-whisper>=0.4
+numpy>=1.26
+sounddevice>=0.5
+pyobjc-core>=11
+pyobjc-framework-Cocoa>=11
+pyobjc-framework-Quartz>=11
+pyobjc-framework-WebKit>=11
+pillow>=10

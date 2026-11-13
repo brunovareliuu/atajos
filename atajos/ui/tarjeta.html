@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* La ventana mide 340 + 12: el vidrio (nativo) ocupa los 340 de la izquierda; el pico va en la franja de 12. */
+  body { width: 352px; }
+  #card { width: 340px; padding: 16px 16px 14px; transform-origin: 100% var(--fy, 50%); }
+  #card.entra { animation: entra .38s var(--spring) both; }
+  #card.cambia > * { animation: cambia .22s ease-out both; }
+  #card.sale { opacity: 0; transform: scale(.96); transition: opacity .12s, transform .12s; }
+  @keyframes entra { from { opacity: 0; transform: scale(.86); } }
+  @keyframes cambia { from { opacity: 0; transform: translateY(3px); } }
+  #pico {
+    position: absolute; left: 339px; width: 11px; height: 22px; top: calc(var(--fy, 50%) - 11px);
+    background: rgba(90, 90, 96, .32); clip-path: path('M0 0 C1 0 2 1 3.5 2.6 L10 9.6 Q11 11 10 12.4 L3.5 19.4 C2 21 1 22 0 22 Z');
+    transition: top .26s cubic-bezier(.2, 1, .3, 1);
+  }
+  body.sin-pico #pico { display: none; }
+  /* barrita en la orilla izquierda (⌃⌥⌘Q): el vidrio va a la derecha de la franja y el pico apunta a la izquierda */
+  body.izq #card { margin-left: 12px; transform-origin: 0% var(--fy, 50%); }
+  body.izq #pico { left: 1px; transform: scaleX(-1); }
+
+  h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.015em; display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+  h2 .logo { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: rgba(255,255,255,.08); }
+  .sub { font-size: 12px; color: var(--label2); }
+  .muted { color: var(--label3); }
+
+  /* uso */
+  .limite { padding: 12px 0; border-top: .5px solid var(--sep); }
+  .limite:first-of-type { border-top: 0; padding-top: 0; }
+  .lim-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .lim-top b { font-size: 13px; font-weight: 600; }
+  .lim-top span { font-size: 12px; color: var(--label2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .barra { height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); margin-top: 8px; overflow: hidden; }
+  .barra i { display: block; height: 100%; border-radius: 4px; background: var(--accent); width: 0; transition: width .7s cubic-bezier(.2, 1, .3, 1); }
+  .barra i.alto { background: var(--rojo); }
+  .pie { font-size: 11px; color: var(--label3); margin-top: 4px; line-height: 1.5; }
+
+  /* listas */
+  .lista::-webkit-scrollbar { width: 6px; }
+  .lista::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 3px; }
+  .lista { max-height: 360px; overflow-y: auto; margin: 0 -8px; display: flex; flex-direction: column; gap: 1px; }
+  .fila { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 10px; width: 100%; text-align: left; min-width: 0; }
+  .fila:hover { background: var(--fill); }
+  .fila .info { flex: 1; min-width: 0; }
+  .fila .n { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila .d { font-size: 11.5px; color: var(--label2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila .clip { font-size: 12.5px; line-height: 1.38; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+  .fila .hora { font-size: 11px; color: var(--label3); flex-shrink: 0; align-self: flex-start; padding-top: 1px; }
+  .fila img.ic { width: 24px; height: 24px; flex-shrink: 0; object-fit: contain; }
+  .fila img.mini { width: 36px; height: 36px; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
+  .fila .acc { opacity: 0; width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; color: var(--label2); flex-shrink: 0; }
+  .fila:hover .acc { opacity: 1; }
+  .fila:hover .hora { display: none; }
+  .acc:hover { background: var(--fill2); color: var(--label); }
+  .ok { color: var(--verde) !important; }
+  /* Copiados: botón de copiar a la derecha; la fila se despliega para verla completa */
+  .fila.cop { cursor: default; align-items: flex-start; }
+  .fila.cop .hora { padding-top: 6px; }
+  .fila.cop:hover .hora { display: block; }
+  .fila.cop .acc { margin-top: 2px; display: none; }
+  .fila.cop.abierta .acc { display: grid; opacity: 1; order: -1; }  /* quitar: solo desplegada y a la izquierda */
+  .fila.cop.abierta .acc:hover { color: var(--rojo); }
+  .fila.cop.abierta { background: var(--fill); }
+  .fila.cop.abierta .clip { -webkit-line-clamp: unset; display: block; white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+  .fila.cop.abierta img.mini { width: 100%; height: auto; max-height: 200px; object-fit: contain; }
+  .fila.cop.abierta:has(img.mini) { flex-wrap: wrap; }
+  .fila.cop.abierta .d { white-space: normal; word-break: break-all; }
+  .btn-copiar { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; background: rgba(52, 199, 89, .18); color: #4cd964; transition: background .15s, color .15s, transform .12s; }
+  .btn-copiar:hover { background: rgba(52, 199, 89, .3); color: #6ee08a; }
+  .btn-copiar:active { transform: scale(.92); }
+  .btn-copiar.hecho { background: rgba(52, 199, 89, .2); color: #34c759; }
+  .btn-copiar .si { display: none; } .btn-copiar.hecho .si { display: block; } .btn-copiar.hecho .no { display: none; }
+  .vacio { color: var(--label3); font-size: 12.5px; padding: 16px 0; text-align: center; }
+  .buscar { position: relative; margin-bottom: 8px; }
+  .buscar input { width: 100%; height: 30px; border: 0; outline: none; border-radius: 9px; background: var(--fill); padding: 0 10px 0 30px; font: 13px system-ui; color: var(--label); }
+  .buscar input::placeholder { color: var(--label3); }
+  .buscar input:focus { box-shadow: 0 0 0 2px var(--accent-soft); }
+  .buscar svg { position: absolute; left: 10px; top: 9px; color: var(--label3); }
+  /* New session (tarjeta de Sessions) */
+  .nueva { background: var(--fill); border-radius: 14px; padding: 11px 11px 10px; margin-bottom: 12px; }
+  .nueva .t { font-size: 12px; font-weight: 600; color: var(--label2); margin-bottom: 8px; }
+  .nueva .chips { margin-bottom: 8px; }
+  .nueva .chip { height: 25px; padding: 0 10px; font-size: 11.5px; background: rgba(255,255,255,.07); }
+  .nueva .chip.on { background: rgba(255,255,255,.9); color: #111; }
+  .nueva .chip.browse { color: var(--label2); }
+  .ns-fila { display: flex; gap: 6px; }
+  .ns-fila input { flex: 1; min-width: 0; height: 32px; border: 0; outline: none; border-radius: 9px; background: rgba(0,0,0,.18); padding: 0 10px; font: 12.5px system-ui; color: var(--label); }
+  .ns-fila input::placeholder { color: var(--label3); }
+  .ns-fila input:focus { box-shadow: 0 0 0 2px var(--accent-soft); }
+  #ns-ir { background: rgba(255,255,255,.14); box-shadow: inset 0 .5px 0 rgba(255,255,255,.3); }  /* vidrio, como los demás */
+  #ns-ir:hover { background: rgba(255,255,255,.22); }
+  .ns-ruta { font: 11px ui-monospace, Menlo, monospace; color: var(--label3); margin-top: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ns-ruta .nuevo { color: #4cd964; font-family: system-ui; font-weight: 600; }
+  .sub-t { font-size: 12px; font-weight: 600; color: var(--label2); margin: 0 0 4px 2px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 27px; padding: 0 10px 0 7px; border-radius: 99px; background: var(--fill); font-size: 12px; font-weight: 500; }
+  .chip:hover { background: var(--fill2); }
+  .chip img { width: 16px; height: 16px; }
+
+  /* spotify */
+  .mus { display: flex; gap: 14px; align-items: center; }
+  .mus .port { width: 92px; height: 92px; border-radius: 12px; background: var(--fill) center/cover; flex-shrink: 0; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+  .mus .t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mus .a { font-size: 13px; color: var(--label2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mus .al { font-size: 11.5px; color: var(--label3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .prog { margin-top: 14px; }
+  .prog .barra i { background: rgba(255,255,255,.85); transition: width 1s linear; }
+  .tiempos { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--label3); margin-top: 5px; font-variant-numeric: tabular-nums; }
+  .ctrls { display: flex; justify-content: center; align-items: center; gap: 22px; margin-top: 6px; }
+  .ctrls button { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; transition: transform .15s, background .15s; }
+  .ctrls button:hover { background: var(--fill); }
+  .ctrls button:active { transform: scale(.9); }
+  .ctrls .grande { width: 50px; height: 50px; background: rgba(255,255,255,.92); color: #111; }
+  .ctrls .grande:hover { background: #fff; }
+  .boton { height: 32px; padding: 0 14px; border-radius: 99px; background: var(--fill); font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; }
+  .boton:hover { background: var(--fill2); }
+  .boton.acento { background: var(--accent); color: #fff; }
+
+  /* airdrop */
+  .zona { border: 1.5px dashed rgba(255,255,255,.22); border-radius: 16px; padding: 22px 16px; text-align: center; transition: all .2s; }
+  .zona .circ { width: 54px; height: 54px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; margin: 0 auto 10px; transition: transform .3s var(--spring); }
+  body.soltando .zona { border-color: var(--azul); background: rgba(10, 132, 255, .22); }
+  .zona.azul .circ { background: var(--azul); box-shadow: 0 6px 22px rgba(10, 132, 255, .45); }
+  .boton.azul { background: var(--azul); color: #fff; }
+  .boton.azul:hover { filter: brightness(1.1); }
+  .boton.azul-suave { background: rgba(10, 132, 255, .18); color: #6cb6ff; }
+  .boton.azul-suave:hover { background: rgba(10, 132, 255, .28); }
+  body.soltando .zona .circ { transform: scale(1.12); }
+  .fila-botones { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="card"></div>
+<div id="pico"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const card = $('#card');
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mmss = (s) => `${Math.floor((s || 0) / 60)}:${String(Math.floor((s || 0) % 60)).padStart(2, '0')}`;
+const tokens = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : `${n || 0}`;
+function hace(t) {
+  const s = Date.now() / 1000 - t;
+  if (s < 60) return 'now'; if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`; const d = Math.floor(s / 86400); return d === 1 ? 'yesterday' : `${d}d`;
+}
+const I = {
+  claude: '<svg width="17" height="17" viewBox="0 0 100 100" fill="#D97757" aria-label="Claude"><path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"/></svg>',
+  play: '<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 2.6v10.8a.7.7 0 0 0 1.06.6l8.6-5.4a.7.7 0 0 0 0-1.2L5.56 2a.7.7 0 0 0-1.06.6z"/></svg>',
+  pausa: '<svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="2.5" width="3.2" height="11" rx="1"/><rect x="9.3" y="2.5" width="3.2" height="11" rx="1"/></svg>',
+  ant: '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 3h1.6v10H3zM14 3.6v8.8a.6.6 0 0 1-.92.5L6.2 8.5a.6.6 0 0 1 0-1l6.88-4.4a.6.6 0 0 1 .92.5z"/></svg>',
+  sig: '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M13 3h-1.6v10H13zM2 3.6v8.8a.6.6 0 0 0 .92.5L9.8 8.5a.6.6 0 0 0 0-1L2.92 3.1A.6.6 0 0 0 2 3.6z"/></svg>',
+  revelar: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M1.75 4.5c0-.83.67-1.5 1.5-1.5h3l1.5 1.5h5c.83 0 1.5.67 1.5 1.5v5.75c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5z"/></svg>',
+  quitar: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2l6 6M8 2 2 8"/></svg>',
+  term: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l4 4-4 4M9 12h4"/></svg>',
+  airdrop: '<svg width="26" height="26" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.2 14.6a6.8 6.8 0 1 1 9.6 0"/><path d="M7.6 12.2a3.4 3.4 0 1 1 4.8 0"/><circle cx="10" cy="10" r=".9" fill="currentColor"/></svg>',
+  copiar: '<svg class="no" width="13" height="14" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="8.5" rx="1.8"/><path d="M8.5 1.5H2.8A1.3 1.3 0 0 0 1.5 2.8v6.7"/></svg><svg class="si" width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 5 9.5 10 3"/></svg>',
+  lupa: '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><path d="m12.5 12.5-3.3-3.3"/></svg>',
+};
+
+let tipo = null, tSpot = null, copiados = [];
+new ResizeObserver(() => { if (tipo) api.alto_tarjeta(card.offsetHeight); }).observe(card);
+
+window.flecha = (y) => document.documentElement.style.setProperty('--fy', `${y}px`);
+window.mostrar = (t, y, yaAbierta) => {
+  tipo = t; flecha(y); fijada = false;
+  clearInterval(tSpot);
+  card.classList.remove('sale', 'entra', 'cambia'); void card.offsetWidth;
+  card.classList.add(yaAbierta ? 'cambia' : 'entra');
+  VISTAS[t]();
+};
+window.ocultar = () => { tipo = null; clearInterval(tSpot); card.classList.add('sale'); };
+window.soltando = (si) => document.body.classList.toggle('soltando', si);
+window.recargar = () => { if (tipo === 'copiados') cargarCopiados(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') api.cerrar_tarjeta(); });
+// En cuanto la usas (clic, scroll, teclear), la tarjeta se queda hasta Esc, clic afuera o clic en su ícono.
+let fijada = false;
+const fijar = () => { if (!fijada && tipo) { fijada = true; api.fijar(); } };
+['mousedown', 'wheel', 'keydown'].forEach(ev => document.addEventListener(ev, fijar, { passive: true }));
+
+// ---------------------------------------------------------------- vistas
+const VISTAS = {
+  async claude() {
+    card.innerHTML = `<h2><span class="logo">${I.claude}</span>Claude Usage</h2><div id="uso"></div>`;
+    const { plan, tokens: tk } = await api.uso();
+    if (tipo !== 'claude') return;
+    const renueva = (ts, semanal) => {
+      if (!ts) return '';
+      const s = ts - Date.now() / 1000;
+      if (s < 86400 && !semanal) { const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return `Resets in ${h ? h + ' h ' : ''}${m} min`; }
+      const f = new Date(ts * 1000);
+      return 'Resets ' + f.toLocaleDateString('en-US', { weekday: 'short' }) + ' ' + f.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    };
+    const fila = (titulo, v, semanal, local) => {
+      if (!v) return `<div class="limite"><div class="lim-top"><b>${titulo}</b><span>${tokens(local)} tokens</span></div>
+        <div class="sub" style="margin-top:2px">Not reported by Claude Code yet.</div></div>`;
+      const p = Math.max(0, Math.min(100, v.pct || 0));
+      return `<div class="limite"><div class="lim-top"><b>${titulo}</b><span>${Math.round(p)}% used</span></div>
+        <div class="sub" style="margin-top:2px">${v.vencido ? 'Already reset' : renueva(v.renueva, semanal)}</div>
+        <div class="barra"><i class="${p >= 80 ? 'alto' : ''}" data-w="${p}"></i></div></div>`;
+    };
+    if (!plan.hay) {
+      $('#uso').innerHTML = `<div class="sub">Shows up after Claude Code's next reply.</div>
+        <div class="pie">Tokens: ${tokens(tk.h5)} in 5 h · ${tokens(tk.d7)} in 7 days</div>`;
+    } else {
+      $('#uso').innerHTML = fila('Current session', plan.five_hour, false, tk.h5) + fila('All models (week)', plan.seven_day, true, tk.d7) +
+        `<div class="pie">Tokens: ${tokens(tk.h5)} in 5 h · ${tokens(tk.d7)} in 7 days<br>Updated ${hace(plan.ts) === 'now' ? 'just now' : hace(plan.ts) + ' ago'}</div>`;
+    }
+    requestAnimationFrame(() => document.querySelectorAll('.barra i[data-w]').forEach(i => i.style.width = i.dataset.w + '%'));
+  },
+
+  async spotify() {
+    card.innerHTML = `<div class="mus"><div class="port" id="port"></div><div style="min-width:0;flex:1"><div class="t" id="st">Spotify</div><div class="a" id="sa"></div><div class="al" id="sal"></div></div></div>
+      <div class="prog"><div class="barra"><i id="sp"></i></div><div class="tiempos"><span id="t1">0:00</span><span id="t2">0:00</span></div></div>
+      <div class="ctrls"><button data-a="previous track">${I.ant}</button><button class="grande" data-a="playpause" id="pp">${I.play}</button><button data-a="next track">${I.sig}</button></div>`;
+    const pintar = (d) => {
+      if (tipo !== 'spotify') return;
+      if (!d.abierto) {
+        $('#st').textContent = 'Spotify is closed'; $('#sa').textContent = 'Open it to see what’s playing'; $('#sal').textContent = '';
+        $('.ctrls').innerHTML = '<button class="boton acento" id="abrirSp" style="width:auto;height:32px">Open Spotify</button>';
+        $('#abrirSp').onclick = async () => { await api.spotify_accion('abrir'); setTimeout(async () => { if (tipo === 'spotify') VISTAS.spotify(); }, 2500); };
+        return;
+      }
+      if (d.error) { $('#st').textContent = 'Spotify'; $('#sa').textContent = d.error; return; }
+      if (!d.titulo) { $('#st').textContent = 'Nothing playing'; $('#sa').textContent = ''; return; }
+      $('#st').textContent = d.titulo; $('#sa').textContent = d.artista; $('#sal').textContent = d.album;
+      if (d.portada) $('#port').style.backgroundImage = `url("${d.portada}")`;
+      $('#sp').style.width = d.duracion ? `${100 * d.posicion / d.duracion}%` : '0';
+      $('#t1').textContent = mmss(d.posicion); $('#t2').textContent = '-' + mmss(Math.max(0, d.duracion - d.posicion));
+      $('#pp').innerHTML = d.estado === 'playing' ? I.pausa : I.play;
+    };
+    card.querySelector('.ctrls').addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-a]'); if (b) pintar(await api.spotify_accion(b.dataset.a));
+    });
+    pintar(await api.spotify());
+    tSpot = setInterval(async () => pintar(await api.spotify()), 1000);
+  },
+
+  async copiados() {
+    card.innerHTML = `<h2>Clipboard</h2><div class="buscar">${I.lupa}<input id="q" placeholder="Search"></div><div class="lista" id="cl"></div>`;
+    $('#q').addEventListener('input', pintarCopiados);
+    $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#cl .btn-copiar')?.click(); });
+    $('#cl').addEventListener('click', async (e) => {
+      const q = e.target.closest('[data-quitar]');
+      if (q) { e.stopPropagation(); await api.borrar_copiado(+q.dataset.quitar); return cargarCopiados(); }
+      const b = e.target.closest('.btn-copiar');
+      if (b) {
+        e.stopPropagation();
+        await api.copiar(+b.dataset.copiar);
+        b.classList.add('hecho'); b.title = 'Copied';
+        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('hecho'); b.title = 'Copy'; }, 1600);
+        return;
+      }
+      // Picarle a la fila la despliega para verla completa (y otra vez la cierra).
+      const f = e.target.closest('.fila'); if (!f || String(getSelection())) return;
+      f.classList.toggle('abierta');
+    });
+    await cargarCopiados();
+  },
+
+  async archivos() {
+    card.innerHTML = `<h2>Files</h2><div class="chips" id="ch"></div><div class="lista" id="al"><div class="vacio">Searching…</div></div>`;
+    const [carpetas, lista] = await Promise.all([api.carpetas(), api.recientes()]);
+    if (tipo !== 'archivos') return;
+    $('#ch').innerHTML = carpetas.map(c => `<button class="chip" data-r="${esc(c.ruta)}"><img src="${c.icono}">${esc(c.nombre)}</button>`).join('');
+    $('#al').innerHTML = lista.length ? lista.map(f => `<button class="fila" data-r="${esc(f.ruta)}"><img class="ic" src="${f.icono}"><div class="info"><div class="n">${esc(f.nombre)}</div><div class="d">${esc(f.carpeta)}</div></div><span class="hora">${hace(f.fecha)}</span><span class="acc" data-revelar="${esc(f.ruta)}" title="Show in Finder">${I.revelar}</span></button>`).join('') : '<div class="vacio">No recent files</div>';
+    card.onclick = (e) => {
+      const r = e.target.closest('[data-revelar]'); if (r) { e.stopPropagation(); return api.revelar(r.dataset.revelar); }
+      const f = e.target.closest('[data-r]'); if (f) api.abrir(f.dataset.r);
+    };
+  },
+
+  airdrop() {
+    card.innerHTML = `<h2>AirDrop</h2><div class="zona azul"><div class="circ">${I.airdrop}</div><div style="font-weight:600">Drop files here</div><div class="sub">or on the AirDrop icon in the bar</div></div>
+      <div class="fila-botones"><button class="boton azul" id="elegir">Choose files…</button><button class="boton azul-suave" id="abrirAD">Open AirDrop</button></div>`;
+    $('#elegir').onclick = () => api.airdrop_elegir();
+    $('#abrirAD').onclick = () => api.abrir_airdrop();
+  },
+
+  async sesiones() {
+    card.innerHTML = `<h2><span class="logo">${I.claude}</span>Claude Code Sessions</h2>
+      <div class="nueva"><div class="t">New session</div>
+        <div class="chips" id="ns-ch"></div>
+        <div class="ns-fila"><input id="ns-nombre" placeholder="New folder name (optional)" spellcheck="false"><button class="boton" id="ns-ir">Start</button></div>
+        <div class="ns-ruta" id="ns-ruta"></div></div>
+      <div class="sub-t">Recent</div><div class="lista" id="sl" style="max-height:300px"><div class="vacio">Loading…</div></div>`;
+    // ---- nueva sesión: carpeta base (chips o Browse…) + nombre opcional de carpeta nueva
+    let base = '~';
+    const pintarChips = (lista, sel) => {
+      $('#ns-ch').innerHTML = lista.map(c => `<button class="chip ${c.ruta === sel ? 'on' : ''}" data-r="${esc(c.ruta)}" title="${esc(c.corta)}">${esc(c.nombre)}</button>`).join('')
+        + `<button class="chip browse" id="ns-browse">Browse…</button>`;
+    };
+    const ruta = async () => {
+      const r = await api.ruta_sesion(base, $('#ns-nombre').value);
+      $('#ns-ruta').innerHTML = `${esc(r.corta)}${r.existe ? '' : ' <span class="nuevo">· new folder</span>'}`;
+    };
+    let opciones = await api.carpetas_sesion();
+    if (tipo !== 'sesiones') return;
+    base = opciones[0]?.ruta || '~';
+    pintarChips(opciones, base); ruta();
+    $('#ns-ch').onclick = async (e) => {
+      if (e.target.closest('#ns-browse')) {
+        const c = await api.elegir_carpeta(); if (!c) return;
+        if (!opciones.some(o => o.ruta === c.ruta)) opciones = [...opciones, c];
+        base = c.ruta; pintarChips(opciones, base); return ruta();
+      }
+      const ch = e.target.closest('.chip[data-r]'); if (!ch) return;
+      base = ch.dataset.r; pintarChips(opciones, base); ruta();
+    };
+    $('#ns-nombre').addEventListener('input', ruta);
+    const iniciar = async () => {
+      const b = $('#ns-ir'); b.textContent = 'Opening…';
+      const r = await api.nueva_sesion(base, $('#ns-nombre').value);
+      b.textContent = r.ok ? 'Opened ✓' : 'Error'; if (!r.ok && r.error) $('#ns-ruta').textContent = r.error;
+      if (r.ok) { $('#ns-nombre').value = ''; ruta(); }
+      setTimeout(() => { b.textContent = 'Start'; }, 2200);
+    };
+    $('#ns-ir').onclick = iniciar;
+    $('#ns-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') iniciar(); });
+
+    const lista = await api.sesiones();
+    if (tipo !== 'sesiones') return;
+    $('#sl').innerHTML = lista.length ? lista.map(s => `<button class="fila" data-id="${s.id}" data-cwd="${esc(s.cwd)}" title="Resume in terminal"><div class="info"><div class="n">${esc(s.titulo)}</div><div class="d">${esc(s.carpeta)} · ${tokens(s.tokens)} tokens${s.vscode ? ' · VS Code' : ''}</div></div><span class="hora">${hace(s.fecha)}</span><span class="acc">${I.term}</span></button>`).join('') : '<div class="vacio">No sessions found</div>';
+    $('#sl').onclick = async (e) => {
+      const f = e.target.closest('.fila'); if (!f) return;
+      f.querySelector('.n').classList.add('ok');
+      const h = f.querySelector('.hora'); const antes = h.textContent; h.textContent = 'Opening…';
+      const ok = await api.abrir_sesion(f.dataset.id, f.dataset.cwd);
+      h.textContent = ok ? 'Opened' : 'Error'; setTimeout(() => { h.textContent = antes; }, 2500);
+    };
+  },
+};
+
+async function cargarCopiados() {
+  copiados = await api.copiados();
+  if (tipo === 'copiados') pintarCopiados();
+}
+function pintarCopiados() {
+  const q = ($('#q')?.value || '').trim().toLowerCase();
+  const vis = copiados.filter(c => !q || (c.texto || (c.nombres || []).join(' ')).toLowerCase().includes(q));
+  const el = $('#cl'); if (!el) return;
+  if (!vis.length) { el.innerHTML = `<div class="vacio">${q ? 'No matches' : 'Copy something and it shows up here'}</div>`; return; }
+  el.innerHTML = vis.slice(0, 60).map(c => {
+    let cuerpo;
+    if (c.tipo === 'texto') cuerpo = `<div class="info"><div class="clip">${esc(c.texto)}</div></div>`;
+    else if (c.tipo === 'imagen') cuerpo = `<img class="mini" src="${c.mini}"><div class="info"><div class="n">Image</div></div>`;
+    else cuerpo = `<img class="ic" src="${c.icono}"><div class="info"><div class="n">${esc(c.nombres.join(', '))}</div><div class="d">${c.rutas.length > 1 ? c.rutas.length + ' files' : 'File'} · ${esc(c.rutas.join(', '))}</div></div>`;
+    return `<div class="fila cop" data-i="${c.i}">${cuerpo}<span class="hora">${hace(c.fecha)}</span><span class="acc" data-quitar="${c.i}" title="Remove">${I.quitar}</span><button class="btn-copiar" data-copiar="${c.i}" title="Copy">${I.copiar}</button></div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" class="oscuro">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="comun.css">
+<style>
+  /* Dos formas: barrita (lista / grabando) y tarjeta (al terminar, con el texto). La ventana cambia de tamaño con api.tamano_panel. */
+  html.oscuro { --accent: #ff3b30; --accent-soft: rgba(255, 59, 48, .25); }  /* el dictado es rojo */
+  body { display: flex; flex-direction: column; }
+  /* Copy igual que los botones de su izquierda (mismo vidrio sutil de .cap) */
+  .cap.vidrio kbd { background: rgba(255,255,255,.12); color: var(--label2); }
+  [data-solo] { display: none !important; }
+  body[data-e="grabando"] [data-solo~="grabando"],
+  body[data-e="afinando"] [data-solo~="afinando"],
+  body[data-e="listo"] [data-solo~="listo"],
+  body[data-e="inactivo"] [data-solo~="inactivo"] { display: flex !important; }
+
+  /* ---------- barrita ---------- */
+  .barrita { height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 18px; }
+  .barrita .ico { width: 20px; display: grid; place-items: center; color: var(--label2); flex-shrink: 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: late 1.2s ease-in-out infinite; }
+  .barrita canvas { flex: 1; min-width: 0; height: 28px; display: block; }
+  .barrita .msg { flex: 1; min-width: 0; font-size: 13px; color: var(--label2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reloj { font-size: 13px; font-weight: 600; color: var(--label); }
+  .redondo { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; transition: transform .12s, filter .15s; }
+  .redondo:hover { filter: brightness(1.1); }
+  .redondo:active { transform: scale(.94); }
+  .redondo.rec { background: var(--accent); color: #fff; }
+  .redondo.stop { background: rgba(255, 255, 255, .92); }
+  .redondo.stop i { width: 13px; height: 13px; border-radius: 3.5px; background: var(--accent); }
+
+  /* ---------- tarjeta ---------- */
+  .tarjeta { flex-direction: column; padding: 16px 16px 14px; gap: 10px; height: 100%; }
+  .top { display: flex; align-items: center; gap: 8px; height: 26px; }
+  .titulo-app { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; display: flex; align-items: center; gap: 7px; }
+  .estado { font-size: 12px; color: var(--label2); display: flex; align-items: center; gap: 6px; margin-left: 2px; }
+  .afin { color: var(--label2); }
+  .top .reloj { margin-left: auto; color: var(--label2); font-weight: 500; }
+  .x { width: 24px; height: 24px; border-radius: 50%; background: var(--fill); display: grid; place-items: center; color: var(--label2); }
+  .x:hover { background: var(--fill2); color: var(--label); }
+  .texto { flex: 1; min-height: 0; overflow-y: auto; font-size: 16px; line-height: 1.5; letter-spacing: -0.01em; white-space: pre-wrap; word-wrap: break-word; }
+  .texto::-webkit-scrollbar { width: 6px; } .texto::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+  .pie { display: flex; gap: 8px; align-items: center; }
+  .pie .cap { height: 34px; }
+  .grande { flex: 1; justify-content: center; }
+  .cap.acento kbd { background: rgba(255,255,255,.22); color: rgba(255,255,255,.9); }
+  .copiado .ico-copiar { display: none; } .ico-ok { display: none; } .copiado .ico-ok { display: block; }
+
+  /* medidor oculto para calcular el alto del texto */
+  #medidor { position: absolute; visibility: hidden; left: 0; top: 0; width: 340px; font-size: 16px; line-height: 1.5; letter-spacing: -0.01em; white-space: pre-wrap; word-wrap: break-word; }
+</style>
+</head>
+<body data-e="inactivo">
+  <!-- barrita: lista para grabar -->
+  <div class="barrita" data-solo="inactivo">
+    <span class="ico"><svg width="14" height="17" viewBox="0 0 14 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg></span>
+    <span class="msg" id="msg">Dictate · ⌃⌥⌘G</span>
+    <button class="redondo rec" id="grabar" title="Record (⌃⌥⌘G)"><svg width="13" height="16" viewBox="0 0 14 17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg></button>
+  </div>
+  <!-- barrita: grabando (parar a la derecha) -->
+  <div class="barrita" data-solo="grabando">
+    <span class="ico"><span class="dot"></span></span>
+    <canvas id="onda"></canvas>
+    <span class="reloj num" id="reloj">0:00</span>
+    <button class="redondo stop" id="detener" title="Stop (⌃⌥⌘G)"><i></i></button>
+  </div>
+  <!-- tarjeta: al terminar -->
+  <div class="tarjeta" data-solo="afinando listo">
+    <div class="top">
+      <span class="titulo-app"><svg width="12" height="14" viewBox="0 0 14 17" fill="none" stroke="var(--accent)" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg>Dictation</span>
+      <span class="estado"><span class="afin barras" data-solo="afinando"><i></i><i></i><i></i><i></i></span><span id="estadoTxt"></span></span>
+      <span class="reloj num" id="duracion"></span>
+      <button class="x" id="cerrar" title="Close (esc)"><svg width="9" height="9" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/></svg></button>
+    </div>
+    <div class="texto selectable" id="texto"></div>
+    <div class="pie">
+      <button class="cap solo" id="otra" title="Record again"><svg width="13" height="14" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="1" width="6" height="9" rx="3"/><path d="M1.5 8a5.5 5.5 0 0 0 11 0M7 13.5V15"/></svg></button>
+      <button class="cap solo" id="enApp" title="Open in Grabadora"><svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5h4.5V6M12.5 1.5 6.5 7.5M11 9v2.5a1 1 0 0 1-1 1H2.5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1H5"/></svg></button>
+      <button class="cap vidrio grande" id="copiar">
+        <svg class="ico-copiar" width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="8.5" rx="1.8"/><path d="M8.5 1.5H2.8A1.3 1.3 0 0 0 1.5 2.8v6.7"/></svg>
+        <svg class="ico-ok" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 5 9.5 10 3"/></svg>
+        <span id="copiarTxt">Copy</span> <kbd>↩</kbd>
+      </button>
+    </div>
+  </div>
+  <div id="medidor"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let estado = 'inactivo', actual = null, texto = '', niveles = [], tPoll = null, ocupado = false, segs = 0;
+const idioma = () => localStorage.idioma ?? 'es';
+const fmt = (s) => { s = Math.max(0, Math.round(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const BARRA = [330, 60];
+
+function tamano() {
+  if (estado === 'inactivo' || estado === 'grabando') return api.tamano_panel(...BARRA);
+  const m = $('#medidor'); m.textContent = texto || ' ';
+  const h = Math.max(170, Math.min(460, m.offsetHeight + 138));
+  api.tamano_panel(384, h);
+}
+function poner(e, txt) {
+  estado = e; document.body.dataset.e = e;
+  $('#estadoTxt').textContent = txt || { afinando: 'Refining', listo: 'Done' }[e] || '';
+  if (e === 'inactivo') $('#msg').textContent = txt || 'Dictate · ⌃⌥⌘G';
+  requestAnimationFrame(() => { ajustar(); dibujar(); });
+  tamano();
+}
+function pintarTexto() { $('#texto').textContent = texto; }
+
+// onda
+const cv = $('#onda'), cx = cv.getContext('2d');
+function ajustar() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; }
+function dibujar() {
+  const d = devicePixelRatio, W = cv.width, H = cv.height, bw = 2.5 * d, gap = 2.5 * d, n = Math.floor(W / (bw + gap));
+  if (n <= 0) return;
+  const on = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  cx.clearRect(0, 0, W, H);
+  const datos = niveles.slice(-n);
+  for (let i = 0; i < n; i++) {
+    const v = datos[i - (n - datos.length)];
+    const h = v === undefined ? 2 * d : Math.max(2 * d, Math.min(1, v) * H);
+    cx.fillStyle = v === undefined ? 'rgba(255,255,255,.18)' : on;
+    cx.globalAlpha = v === undefined ? 1 : 0.4 + 0.6 * (i / n);
+    cx.beginPath(); cx.roundRect(i * (bw + gap), (H - h) / 2, bw, h, bw / 2); cx.fill();
+  }
+  cx.globalAlpha = 1;
+}
+
+async function empezar() {
+  if (ocupado) return; ocupado = true;
+  try {
+    if (await api.grabando()) { poner('inactivo', 'Already recording in the window'); return; }
+    const r = await api.empezar(idioma());
+    if (!r.ok) { poner('inactivo', 'No microphone'); return; }
+    actual = null; texto = ''; niveles = []; segs = 0; poner('grabando');
+    $('#copiar').classList.remove('copiado'); $('#copiarTxt').textContent = 'Copy';
+    clearInterval(tPoll);
+    tPoll = setInterval(async () => {
+      const { nivel, segundos } = await api.nivel();
+      segs = segundos;
+      niveles.push(Math.pow(Math.min(1, nivel * 9), 0.6));
+      $('#reloj').textContent = fmt(segundos); dibujar();
+    }, 60);
+  } finally { ocupado = false; }
+}
+async function detener() {
+  if (ocupado || estado !== 'grabando') return; ocupado = true;
+  try {
+    clearInterval(tPoll);
+    const it = await api.detener(idioma());
+    niveles = []; dibujar();
+    if (!it || it.descartado) { poner('inactivo', 'Too short, not saved'); return; }
+    actual = it.id; texto = it.texto || '';
+    $('#duracion').textContent = fmt(it.duracion);
+    pintarTexto(); poner('afinando');
+  } finally { ocupado = false; }
+}
+async function cancelar() {
+  clearInterval(tPoll); await api.cancelar(); niveles = []; poner('inactivo'); $('#reloj').textContent = '0:00';
+}
+async function copiar(cerrar) {
+  if (!texto) return;
+  await api.copiar(texto);
+  $('#copiar').classList.add('copiado'); $('#copiarTxt').textContent = 'Copied';
+  if (cerrar) setTimeout(() => { api.cerrar_panel(); setTimeout(() => poner('inactivo'), 300); }, 450);
+}
+
+// llamadas desde Python
+window.atajo = () => { estado === 'grabando' ? detener() : empezar(); };
+window.alAbrir = (grabar) => { if (grabar && estado !== 'grabando') empezar(); else tamano(); };
+window.vivo = ({ fijo, tentativo }) => { if (estado === 'grabando') texto = `${fijo} ${tentativo}`.trim(); };
+window.transcrito = (it) => {
+  if (it.id !== actual) return;
+  if (it.estado === 'error') { poner('listo', 'Kept the live text'); return; }
+  texto = it.texto || ''; pintarTexto(); poner('listo');
+};
+
+$('#detener').onclick = detener;
+$('#grabar').onclick = empezar;
+$('#otra').onclick = empezar;
+$('#copiar').onclick = () => copiar(true);
+$('#enApp').onclick = () => { api.abrir_ventana(actual); api.cerrar_panel(); };
+$('#cerrar').onclick = (e) => { e.stopPropagation(); poner('inactivo'); api.cerrar_panel(); };
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (estado === 'grabando') cancelar(); else if (estado !== 'inactivo') poner('inactivo'); api.cerrar_panel(); }
+  if (e.key === 'Enter' && (estado === 'listo' || estado === 'afinando')) { e.preventDefault(); copiar(true); }
+  if (e.key === 'c' && e.metaKey && !String(getSelection())) { e.preventDefault(); copiar(false); }
+});
+window.addEventListener('resize', () => { ajustar(); dibujar(); });
+ajustar(); dibujar();
+</script>
+</body>
+</html>

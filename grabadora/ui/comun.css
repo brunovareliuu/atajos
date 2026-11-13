@@ -1,0 +1,90 @@
+/* Tokens al estilo de los colores de sistema de Apple; claro y oscuro según la Mac. */
+:root {
+  color-scheme: light dark;
+  --label: rgba(0, 0, 0, .88);
+  --label2: rgba(60, 60, 67, .62);
+  --label3: rgba(60, 60, 67, .36);
+  --fill: rgba(120, 120, 128, .12);
+  --fill2: rgba(120, 120, 128, .18);
+  --fill3: rgba(120, 120, 128, .26);
+  --sep: rgba(60, 60, 67, .14);
+  --surface: rgba(255, 255, 255, .55);
+  --accent: #fa4c03;
+  --accent-soft: rgba(250, 76, 3, .14);
+  --on-accent: #fff;
+  --rojo: #ff3b30;
+  --wave-off: rgba(60, 60, 67, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --label: rgba(255, 255, 255, .92);
+    --label2: rgba(235, 235, 245, .6);
+    --label3: rgba(235, 235, 245, .3);
+    --fill: rgba(120, 120, 128, .2);
+    --fill2: rgba(120, 120, 128, .28);
+    --fill3: rgba(120, 120, 128, .36);
+    --sep: rgba(84, 84, 88, .45);
+    --surface: rgba(30, 30, 32, .35);
+    --accent: #ff5a14;
+    --accent-soft: rgba(255, 90, 20, .2);
+    --rojo: #ff453a;
+    --wave-off: rgba(235, 235, 245, .14);
+  }
+}
+/* Píldora y tarjeta: siempre oscuras (vidrio oscuro), sin importar el modo de la Mac. */
+html.oscuro {
+  color-scheme: dark;
+  --label: rgba(255, 255, 255, .94);
+  --label2: rgba(235, 235, 245, .62);
+  --label3: rgba(235, 235, 245, .32);
+  --fill: rgba(255, 255, 255, .1);
+  --fill2: rgba(255, 255, 255, .16);
+  --fill3: rgba(255, 255, 255, .22);
+  --sep: rgba(255, 255, 255, .1);
+  --accent: #ff5a14;
+  --accent-soft: rgba(255, 90, 20, .22);
+  --wave-off: rgba(255, 255, 255, .14);
+}
+html.oscuro body { text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: transparent; }
+body {
+  color: var(--label);
+  font: 13px/1.4 system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none; user-select: none; cursor: default;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
+.num { font-variant-numeric: tabular-nums; }
+.selectable { -webkit-user-select: text; user-select: text; cursor: text; }
+::selection { background: var(--accent-soft); }
+::-webkit-scrollbar { width: 0; }
+
+/* botón cápsula estilo macOS 26 */
+.cap {
+  height: 30px; padding: 0 13px; border-radius: 99px; background: var(--fill);
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
+  transition: background .15s, transform .1s;
+}
+.cap:hover { background: var(--fill2); }
+.cap:active { transform: scale(.97); background: var(--fill3); }
+.cap.solo { width: 30px; padding: 0; justify-content: center; }
+.cap.acento { background: var(--accent); color: var(--on-accent); }
+.cap.acento:hover { filter: brightness(1.06); }
+.cap svg { flex-shrink: 0; }
+kbd { font: 500 11px system-ui; color: var(--label2); background: var(--fill); border-radius: 5px; padding: 1px 5px; }
+
+/* control segmentado */
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--fill); }
+.seg button { padding: 3px 12px; border-radius: 7px; font-size: 12px; font-weight: 500; color: var(--label2); transition: all .15s; }
+.seg button.on { background: var(--surface-on, rgba(255,255,255,.9)); color: var(--label); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); }
+@media (prefers-color-scheme: dark) { .seg button.on { background: rgba(255,255,255,.2); box-shadow: none; } }
+
+/* barras de espera */
+.barras { display: inline-flex; gap: 2px; height: 12px; align-items: center; }
+.barras i { width: 2px; border-radius: 1px; background: currentColor; animation: sube 1s ease-in-out infinite; }
+.barras i:nth-child(2) { animation-delay: .12s } .barras i:nth-child(3) { animation-delay: .24s } .barras i:nth-child(4) { animation-delay: .36s }
+@keyframes sube { 0%, 100% { height: 3px; opacity: .5 } 50% { height: 12px; opacity: 1 } }
+@keyframes late { 50% { opacity: .3 } }
+.cursor { display: inline-block; width: 2px; height: 1.05em; border-radius: 1px; background: var(--accent); vertical-align: -0.16em; margin-left: 2px; animation: late 1s steps(2) infinite; }

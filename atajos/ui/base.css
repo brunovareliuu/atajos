@@ -1,0 +1,31 @@
+/* Atajos: siempre vidrio oscuro, sin importar el modo de la Mac. */
+:root {
+  color-scheme: dark;
+  --label: rgba(255, 255, 255, .95);
+  --label2: rgba(235, 235, 245, .62);
+  --label3: rgba(235, 235, 245, .34);
+  --fill: rgba(255, 255, 255, .08);
+  --fill2: rgba(255, 255, 255, .14);
+  --fill3: rgba(255, 255, 255, .22);
+  --sep: rgba(255, 255, 255, .09);
+  --accent: #fa4c03;
+  --accent-soft: rgba(250, 76, 3, .22);
+  --rojo: #ff453a;
+  --verde: #1ed760;
+  --azul: #0a84ff;
+  --claude: #d97757;
+  --spring: cubic-bezier(.2, 1.3, .35, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: transparent; }
+body {
+  color: var(--label);
+  font: 13px/1.4 system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);  /* que se lea sobre el vidrio transparente */
+  -webkit-user-select: none; user-select: none; cursor: default;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: default; }
+.num { font-variant-numeric: tabular-nums; }
+::-webkit-scrollbar { width: 0; }

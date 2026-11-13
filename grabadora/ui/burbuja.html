@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" class="oscuro">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="comun.css">
+<style>
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; height: 100%; }
+  .aro { position: relative; width: 44px; height: 44px; }
+  .aro svg.anillo { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .aro .fondo { stroke: rgba(255, 255, 255, .14); }
+  .aro .valor { stroke: var(--accent); transition: stroke-dashoffset .12s linear, stroke .3s; }
+  .icono { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255, 255, 255, .92); }
+  .icono .stop { display: none; width: 12px; height: 12px; border-radius: 3px; background: var(--accent); }
+  body.rec .icono svg { display: none; }
+  body.rec .icono .stop { display: block; }
+  body.rec .aro::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; box-shadow: 0 0 14px 2px rgba(255, 90, 20, var(--g, 0)); }
+  .etq { font: 600 10.5px system-ui; color: rgba(255, 255, 255, .72); letter-spacing: .01em; }
+  body.rec .etq { color: #fff; }
+</style>
+</head>
+<body>
+  <div class="aro">
+    <svg class="anillo" width="44" height="44" viewBox="0 0 44 44" fill="none" stroke-width="3" stroke-linecap="round">
+      <circle class="fondo" cx="22" cy="22" r="19"/>
+      <circle class="valor" id="valor" cx="22" cy="22" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+    </svg>
+    <div class="icono">
+      <svg width="15" height="18" viewBox="0 0 14 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg>
+      <span class="stop"></span>
+    </div>
+  </div>
+  <div class="etq num" id="etq">Dictar</div>
+<script>
+const C = 119.4, $ = (s) => document.querySelector(s);
+let tPoll = null, suave = 0;
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function aro(v) { $('#valor').style.strokeDashoffset = C * (1 - Math.max(0, Math.min(1, v))); }
+
+window.grabacion = (si) => {
+  document.body.classList.toggle('rec', !!si);
+  clearInterval(tPoll);
+  if (si) {
+    tPoll = setInterval(async () => {
+      const { nivel, segundos } = await api.nivel();
+      suave = suave * 0.6 + Math.min(1, Math.pow(nivel * 9, 0.6)) * 0.4;
+      aro(0.12 + suave * 0.88);
+      document.body.style.setProperty('--g', (suave * 0.8).toFixed(2));
+      $('#etq').textContent = fmt(segundos);
+    }, 70);
+  } else {
+    aro(0); $('#etq').textContent = 'Dictar';
+  }
+};
+window.transcrito = (it) => { if (!document.body.classList.contains('rec')) { $('#etq').textContent = 'Listo'; setTimeout(() => { if (!document.body.classList.contains('rec')) $('#etq').textContent = 'Dictar'; }, 4000); } };
+(async () => { if (await api.grabando()) window.grabacion(true); })();
+</script>
+</body>
+</html>

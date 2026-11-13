@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="comun.css">
+<style>
+  /* La barra lateral de vidrio la pinta macOS (NSGlassEffectView) en x 8–276; aquí solo va su contenido. */
+  .lateral { position: absolute; left: 8px; top: 8px; bottom: 8px; width: 268px; display: flex; flex-direction: column; }
+  .lat-top { height: 44px; flex-shrink: 0; } /* zona de los semáforos; macOS se queda los clics */
+  .icono-btn { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--label2); }
+  .icono-btn:hover { background: var(--fill); color: var(--label); }
+  .fila-buscar { display: flex; gap: 6px; align-items: center; margin: 4px 10px 6px; flex-shrink: 0; }
+  .buscar { position: relative; flex: 1; }
+  .buscar input {
+    width: 100%; height: 28px; border-radius: 8px; border: 0; outline: none; background: var(--fill);
+    padding: 0 10px 0 28px; font: 13px system-ui; color: var(--label);
+  }
+  .buscar input::placeholder { color: var(--label3); }
+  .buscar input:focus { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .buscar svg { position: absolute; left: 9px; top: 7px; color: var(--label3); }
+  .lista { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+  .grupo { color: var(--label3); font-size: 11px; font-weight: 600; padding: 12px 10px 4px; }
+  .fila { width: 100%; text-align: left; padding: 7px 10px 8px; border-radius: 9px; display: block; }
+  .fila:hover { background: var(--fill); }
+  .fila.activa { background: var(--accent); color: var(--on-accent); }
+  .fila .t { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.005em; }
+  .fila .m { font-size: 12px; color: var(--label2); display: flex; gap: 6px; align-items: center; margin-top: 1px; white-space: nowrap; overflow: hidden; }
+  .fila .m .ex { overflow: hidden; text-overflow: ellipsis; color: var(--label3); }
+  .fila.activa .m, .fila.activa .m .ex { color: rgba(255,255,255,.78); }
+  .fila .vacio { font-weight: 500; color: var(--label2); }
+  .fila .barras { color: var(--accent); }
+  .fila.activa .barras { color: #fff; }
+  .nada { color: var(--label3); font-size: 12.5px; padding: 26px 16px; text-align: center; line-height: 1.5; }
+  .lat-pie { padding: 8px 10px 10px; flex-shrink: 0; }
+  .lat-pie .cap { width: 100%; justify-content: center; background: var(--fill); }
+
+  main { position: absolute; left: 284px; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; }
+  .barra { height: 52px; flex-shrink: 0; }
+  .cabeza { display: flex; align-items: flex-start; gap: 16px; }
+  .cabeza > div:first-child { flex: 1; min-width: 0; }
+  .acciones { display: flex; gap: 8px; padding-top: 2px; }
+  .vista { flex: 1; display: none; min-height: 0; }
+  .vista.on { display: flex; }
+
+  /* grabar */
+  #grabar { flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 0 40px 60px; transition: padding .3s; }
+  .reloj { font: 200 64px/1 system-ui; letter-spacing: -0.02em; color: var(--label); transition: font-size .3s, color .3s; }
+  .reloj.apagado { color: var(--label3); }
+  canvas#onda { width: min(520px, 92%); height: 64px; }
+  .rec {
+    width: 72px; height: 72px; border-radius: 50%; position: relative; display: grid; place-items: center;
+    box-shadow: inset 0 0 0 3.5px var(--label3); transition: transform .12s;
+  }
+  .rec:hover { box-shadow: inset 0 0 0 3.5px var(--label2); }
+  .rec:active { transform: scale(.95); }
+  .rec .in { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); transition: all .28s cubic-bezier(.3, 1.3, .5, 1); }
+  .rec.on .in { width: 26px; height: 26px; border-radius: 6px; }
+  .ayuda { color: var(--label2); font-size: 12.5px; text-align: center; display: flex; gap: 6px; align-items: center; }
+  .atajo-tip { color: var(--label3); font-size: 12px; display: flex; gap: 6px; align-items: center; }
+  .vivo { display: none; width: min(640px, 94%); max-height: 36vh; overflow-y: auto; font-size: 19px; line-height: 1.55; letter-spacing: -0.012em;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20px); padding-top: 8px; }
+  .vivo .tent { color: var(--label2); }
+  .vivo .espera { color: var(--label3); }
+  #grabar.grabando { justify-content: flex-start; padding-top: 30px; }
+  #grabar.grabando .reloj { font-size: 44px; }
+  #grabar.grabando .vivo { display: block; }
+  #grabar.grabando .seg, #grabar.grabando .atajo-tip { display: none; }
+
+  /* detalle */
+  #detalle { flex-direction: column; padding: 0 48px 22px; gap: 4px; }
+  .titulo { font-size: 26px; font-weight: 700; letter-spacing: -0.022em; outline: none; border-radius: 6px; padding: 0 4px; margin-left: -4px; }
+  .titulo:focus { background: var(--fill); }
+  .meta { color: var(--label2); font-size: 12.5px; display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .meta span + span::before { content: "·"; margin-right: 6px; color: var(--label3); }
+  .hoja { flex: 1; min-height: 0; display: flex; flex-direction: column; border-top: .5px solid var(--sep); }
+  textarea#texto {
+    flex: 1; resize: none; background: transparent; border: 0; outline: none; color: var(--label);
+    font: 15px/1.7 system-ui; letter-spacing: -0.008em; padding: 16px 0 24px;
+  }
+  .afinando { display: flex; align-items: center; gap: 8px; color: var(--label2); font-size: 12.5px; padding: 14px 0 0; }
+  .preview { flex: 1; overflow-y: auto; padding: 10px 0 24px; font-size: 15px; line-height: 1.7; color: var(--label2); white-space: pre-wrap; }
+  .cargando { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--label2); }
+  .cargando .barras { transform: scale(1.8); color: var(--accent); }
+  .error { color: var(--rojo); padding: 18px 0; }
+  .abajo { display: flex; justify-content: space-between; align-items: center; color: var(--label3); font-size: 12px; padding-top: 10px; border-top: .5px solid var(--sep); }
+  .abajo .seg button { font-size: 11.5px; padding: 2px 10px; }
+  .abajo .der { display: flex; align-items: center; gap: 8px; }
+
+  .toast { position: fixed; bottom: 22px; left: calc(50% + 142px); transform: translate(-50%, 12px); opacity: 0;
+    background: var(--label); color: var(--on-accent); font-size: 12.5px; font-weight: 600; padding: 7px 14px; border-radius: 99px; transition: all .22s; pointer-events: none; }
+  @media (prefers-color-scheme: dark) { .toast { color: #000; } }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+  .peligro.armado { background: var(--rojo); color: #fff; }
+</style>
+</head>
+<body>
+<div class="lateral">
+  <div class="lat-top"></div>
+  <div class="fila-buscar">
+  <div class="buscar">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><path d="m12.5 12.5-3.3-3.3"/></svg>
+    <input id="q" placeholder="Buscar">
+  </div>
+    <button class="icono-btn" id="nueva" title="Nueva grabación (⌘N)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9v3.5a1.5 1.5 0 0 1-1.5 1.5H3.5A1.5 1.5 0 0 1 2 12.5V4a1.5 1.5 0 0 1 1.5-1.5H7"/><path d="M12 1.8a1.3 1.3 0 0 1 1.9 1.9L8.5 9.1 6 9.8l.7-2.5z"/></svg>
+    </button>
+  </div>
+  <div class="lista" id="lista"></div>
+  <div class="lat-pie">
+    <button class="cap" id="importar">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9.5V1.5M4 4.5l3-3 3 3M1.5 9.5v1.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V9.5"/></svg>
+      Transcribir un audio
+    </button>
+  </div>
+</div>
+
+<main>
+  <div class="barra"></div>
+
+  <section class="vista on" id="grabar">
+    <div class="seg" id="idiomas"><button data-l="es">Español</button><button data-l="en">English</button><button data-l="">Detectar</button></div>
+    <div class="reloj num apagado" id="reloj">0:00</div>
+    <canvas id="onda"></canvas>
+    <button class="rec" id="rec" aria-label="Grabar"><span class="in"></span></button>
+    <div class="ayuda" id="ayuda">Haz clic o presiona <kbd>espacio</kbd></div>
+    <div class="atajo-tip">Desde cualquier app: <kbd>⌃⌥⌘G</kbd></div>
+    <div class="vivo selectable" id="vivo"></div>
+  </section>
+
+  <section class="vista" id="detalle">
+    <div class="cabeza">
+      <div>
+        <div class="titulo selectable" id="titulo" contenteditable="true" spellcheck="false"></div>
+        <div class="meta num" id="meta"></div>
+      </div>
+      <div class="acciones" id="barra"></div>
+    </div>
+    <div class="hoja" id="hoja"></div>
+    <div class="abajo">
+      <span id="guardado"></span>
+      <span class="der">Volver a transcribir
+        <span class="seg" id="reidioma"><button data-l="es">ES</button><button data-l="en">EN</button><button data-l="">Auto</button></span>
+      </span>
+    </div>
+  </section>
+  <div class="toast" id="toast"></div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const I = {
+  play: '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.6v8.8a.6.6 0 0 0 .9.5l7-4.4a.6.6 0 0 0 0-1L3.9 1.1a.6.6 0 0 0-.9.5z"/></svg>',
+  stop: '<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2.5"/></svg>',
+  finder: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.75 4.5c0-.83.67-1.5 1.5-1.5h3l1.5 1.5h5c.83 0 1.5.67 1.5 1.5v5.75c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5z"/></svg>',
+  borrar: '<svg width="13" height="14" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4h11M5 4V2.5h4V4M3 4l.7 9.6c.05.8.7 1.4 1.5 1.4h3.6c.8 0 1.45-.6 1.5-1.4L11 4"/></svg>',
+  copiar: '<svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="8.5" rx="1.8"/><path d="M8.5 1.5H2.8A1.3 1.3 0 0 0 1.5 2.8v6.7"/></svg>',
+};
+let items = [], sel = null, grabando = false, idioma = localStorage.idioma ?? 'es', niveles = [], sonando = null, tPoll = null;
+
+const fmt = (s) => { s = Math.max(0, Math.round(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(s % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; };
+const titulo = (it) => it.titulo || (it.texto ? it.texto.split(/\s+/).slice(0, 7).join(' ').replace(/[.,;:]$/, '') : (it.origen && it.origen !== 'grabado' ? it.origen : 'Nota de voz'));
+const extracto = (it) => it.texto ? it.texto.split(/\s+/).slice(it.titulo ? 0 : 7, (it.titulo ? 0 : 7) + 14).join(' ') : '';
+const hora = (iso) => new Date(iso).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+const fechaLarga = (iso) => new Date(iso).toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const nombreIdioma = { es: 'Español', en: 'Inglés' };
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 1500); }
+
+function grupoDe(iso) {
+  const d = new Date(iso), hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const dias = Math.round((hoy - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
+  if (dias <= 0) return 'Hoy'; if (dias === 1) return 'Ayer'; if (dias < 7) return 'Últimos 7 días';
+  const t = d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }); return t[0].toUpperCase() + t.slice(1);
+}
+function cuando(it) { const g = grupoDe(it.fecha); return g === 'Hoy' || g === 'Ayer' ? hora(it.fecha) : new Date(it.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }); }
+
+function pintarLista() {
+  const q = $('#q').value.trim().toLowerCase();
+  const vis = items.filter(i => !q || (titulo(i) + ' ' + i.texto).toLowerCase().includes(q));
+  const el = $('#lista');
+  if (!vis.length) { el.innerHTML = `<div class="nada">${q ? 'Sin resultados' : 'Tus grabaciones van a aparecer aquí.'}</div>`; return; }
+  let html = '', g = null;
+  for (const it of vis) {
+    const gg = grupoDe(it.fecha);
+    if (gg !== g) { html += `<div class="grupo">${gg}</div>`; g = gg; }
+    const t = it.estado === 'transcribiendo' && !it.texto ? '<span class="vacio">Transcribiendo…</span>' : esc(titulo(it));
+    const pre = it.estado === 'transcribiendo' ? '<span class="barras"><i></i><i></i><i></i><i></i></span>' : '';
+    html += `<button class="fila ${sel === it.id ? 'activa' : ''}" data-id="${it.id}"><div class="t">${t}</div><div class="m num">${pre}<span>${cuando(it)}</span><span class="ex">${esc(extracto(it)) || fmt(it.duracion)}</span></div></button>`;
+  }
+  el.innerHTML = html;
+}
+
+function ver(vista) {
+  document.querySelectorAll('.vista').forEach(v => v.classList.toggle('on', v.id === vista));
+  $('#barra').innerHTML = vista === 'detalle' ? `
+    <button class="cap solo" id="play" title="Escuchar">${sonando === sel ? I.stop : I.play}</button>
+    <button class="cap solo" id="enFinder" title="Mostrar en Finder">${I.finder}</button>
+    <button class="cap solo peligro" id="borrar" title="Borrar">${I.borrar}</button>
+    <button class="cap acento" id="copiar">${I.copiar}Copiar</button>` : '';
+  if (vista === 'detalle') conectarBarra();
+}
+
+function abrir(id) {
+  const it = items.find(i => i.id === id); if (!it) return;
+  sel = id; pintarLista(); ver('detalle');
+  $('#titulo').textContent = titulo(it);
+  const partes = [fechaLarga(it.fecha), fmt(it.duracion)];
+  if (it.idioma && nombreIdioma[it.idioma]) partes.push(nombreIdioma[it.idioma]);
+  if (it.texto) partes.push(`${it.texto.split(/\s+/).filter(Boolean).length} palabras`);
+  $('#meta').innerHTML = partes.map(p => `<span>${esc(p)}</span>`).join('');
+  document.querySelectorAll('#reidioma button').forEach(b => b.classList.toggle('on', b.dataset.l === (it.idioma === 'en' ? 'en' : it.idioma === 'es' ? 'es' : '')));
+  $('#guardado').textContent = it.tardo ? `Transcrito en ${it.tardo} s, sin internet` : '';
+  const hoja = $('#hoja');
+  if (it.estado === 'transcribiendo' && it.texto) {
+    hoja.innerHTML = `<div class="afinando"><span class="barras"><i></i><i></i><i></i><i></i></span>Afinando la transcripción…</div><div class="preview selectable">${esc(it.texto)}</div>`;
+  } else if (it.estado === 'transcribiendo') {
+    hoja.innerHTML = `<div class="cargando"><span class="barras"><i></i><i></i><i></i><i></i></span><div>Transcribiendo ${fmt(it.duracion)} de audio…</div></div>`;
+  } else if (it.estado === 'error') {
+    hoja.innerHTML = `<div class="error selectable">No se pudo transcribir: ${esc(it.error || '')}</div>`;
+  } else {
+    hoja.innerHTML = '<textarea id="texto" class="selectable" spellcheck="false"></textarea>';
+    const ta = $('#texto'); ta.value = it.texto || '';
+    let t; ta.addEventListener('input', () => { it.texto = ta.value; clearTimeout(t); $('#guardado').textContent = 'Guardando…'; t = setTimeout(async () => { await api.editar(it.id, ta.value); $('#guardado').textContent = 'Guardado'; pintarLista(); }, 500); });
+  }
+}
+window.abrirNota = (id) => { if (!grabando) abrir(id); };
+
+function conectarBarra() {
+  $('#copiar').onclick = async () => { const it = items.find(i => i.id === sel); if (it?.texto) { await api.copiar(it.texto); toast('Copiado'); } };
+  $('#play').onclick = async () => {
+    if (sonando === sel) { await api.parar(); sonando = null; $('#play').innerHTML = I.play; return; }
+    if (await api.reproducir(sel)) { sonando = sel; $('#play').innerHTML = I.stop; }
+  };
+  $('#enFinder').onclick = () => api.finder(sel);
+  $('#borrar').onclick = async () => {
+    const b = $('#borrar');
+    if (!b.classList.contains('armado')) { b.classList.add('armado'); toast('Toca otra vez para borrar'); setTimeout(() => b.classList.remove('armado'), 2500); return; }
+    if (sonando === sel) { await api.parar(); sonando = null; }
+    await api.borrar(sel); items = items.filter(i => i.id !== sel); sel = null; pintarLista(); ver('grabar'); toast('Movido a la papelera');
+  };
+}
+
+// ---------- grabar ----------
+const cv = $('#onda'), cx = cv.getContext('2d');
+function ajustar() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; }
+function dibujar() {
+  const d = devicePixelRatio, W = cv.width, H = cv.height, bw = 3 * d, gap = 3 * d, n = Math.floor(W / (bw + gap));
+  const cs = getComputedStyle(document.documentElement);
+  const on = cs.getPropertyValue('--accent').trim(), off = cs.getPropertyValue('--wave-off').trim();
+  cx.clearRect(0, 0, W, H);
+  const datos = niveles.slice(-n);
+  for (let i = 0; i < n; i++) {
+    const v = datos[i - (n - datos.length)];
+    const h = v === undefined ? 2 * d : Math.max(2 * d, Math.min(1, v) * H);
+    cx.fillStyle = v === undefined ? off : on; cx.globalAlpha = v === undefined ? 1 : 0.35 + 0.65 * (i / n);
+    cx.beginPath(); cx.roundRect(i * (bw + gap), (H - h) / 2, bw, h, bw / 2); cx.fill();
+  }
+  cx.globalAlpha = 1;
+}
+async function alternar() {
+  if (!grabando) {
+    const r = await api.empezar(idioma);
+    if (!r.ok) { $('#ayuda').textContent = r.error; return; }
+    grabando = true; niveles = []; sel = null; pintarLista(); ver('grabar');
+    $('#grabar').classList.add('grabando'); $('#rec').classList.add('on'); $('#reloj').classList.remove('apagado');
+    $('#vivo').innerHTML = '<span class="espera">Habla, aquí va saliendo el texto</span><span class="cursor"></span>';
+    $('#ayuda').innerHTML = '<kbd>espacio</kbd> termina · <kbd>esc</kbd> descarta';
+    requestAnimationFrame(() => { ajustar(); dibujar(); });
+    tPoll = setInterval(async () => {
+      const { nivel, segundos } = await api.nivel();
+      niveles.push(Math.pow(Math.min(1, nivel * 9), 0.6));
+      $('#reloj').textContent = fmt(segundos); dibujar();
+    }, 60);
+  } else {
+    pararUI();
+    const it = await api.detener(idioma);
+    if (!it || it.descartado) { $('#ayuda').textContent = 'Muy corto, no se guardó'; return; }
+    items.unshift(it); abrir(it.id);
+  }
+}
+function pararUI() {
+  grabando = false; clearInterval(tPoll);
+  $('#grabar').classList.remove('grabando'); $('#rec').classList.remove('on');
+  $('#reloj').classList.add('apagado'); $('#reloj').textContent = '0:00'; $('#vivo').innerHTML = '';
+  niveles = []; requestAnimationFrame(() => { ajustar(); dibujar(); });
+  $('#ayuda').innerHTML = 'Haz clic o presiona <kbd>espacio</kbd>';
+}
+
+// ---------- avisos desde Python ----------
+window.transcrito = (it) => {
+  const i = items.findIndex(x => x.id === it.id);
+  if (i >= 0) items[i] = it; else items.unshift(it);
+  pintarLista(); if (sel === it.id) abrir(it.id);
+};
+window.vivo = ({ fijo, tentativo }) => {
+  if (!grabando) return;
+  const el = $('#vivo');
+  el.innerHTML = (fijo || tentativo)
+    ? `${esc(fijo)}${fijo && tentativo ? ' ' : ''}<span class="tent">${esc(tentativo)}</span><span class="cursor"></span>`
+    : '<span class="espera">Escuchando…</span><span class="cursor"></span>';
+  el.scrollTop = el.scrollHeight;
+};
+window.finReproduccion = (id) => { if (sonando === id) { sonando = null; if (sel === id && $('#play')) $('#play').innerHTML = I.play; } };
+
+// ---------- eventos ----------
+$('#rec').onclick = alternar;
+$('#nueva').onclick = () => { if (!grabando) { sel = null; pintarLista(); ver('grabar'); requestAnimationFrame(() => { ajustar(); dibujar(); }); } };
+$('#importar').onclick = async () => { const nuevos = await api.importar(idioma); if (nuevos?.length) { items.unshift(...nuevos.slice().reverse()); abrir(nuevos[0].id); } };
+$('#lista').onclick = (e) => { const f = e.target.closest('.fila'); if (f && !grabando) abrir(f.dataset.id); };
+$('#q').oninput = pintarLista;
+$('#idiomas').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; idioma = b.dataset.l; localStorage.idioma = idioma; marcarIdioma(); };
+function marcarIdioma() { document.querySelectorAll('#idiomas button').forEach(b => b.classList.toggle('on', b.dataset.l === idioma)); }
+$('#reidioma').onclick = async (e) => {
+  const b = e.target.closest('button'); if (!b || !sel) return;
+  const it = await api.retranscribir(sel, b.dataset.l);
+  if (it) { items[items.findIndex(x => x.id === it.id)] = it; abrir(it.id); pintarLista(); }
+};
+$('#titulo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+$('#titulo').addEventListener('blur', async (e) => {
+  const it = items.find(i => i.id === sel); if (!it) return;
+  const t = e.target.textContent.trim(); if (t && t !== titulo(it)) { it.titulo = t; await api.renombrar(it.id, t); pintarLista(); }
+});
+document.addEventListener('keydown', (e) => {
+  const a = document.activeElement, enTexto = ['INPUT', 'TEXTAREA'].includes(a.tagName) || a.isContentEditable;
+  if (e.code === 'Space' && !enTexto && $('#grabar').classList.contains('on')) { e.preventDefault(); alternar(); }
+  if (e.key === 'Escape' && grabando) { api.cancelar(); pararUI(); $('#ayuda').textContent = 'Descartado'; }
+  if (e.metaKey && e.key === 'n' && !grabando) { e.preventDefault(); $('#nueva').click(); }
+  if (e.metaKey && e.key === 'f') { e.preventDefault(); $('#q').focus(); }
+});
+window.addEventListener('resize', () => { ajustar(); dibujar(); });
+
+(async () => {
+  marcarIdioma(); ajustar(); dibujar();
+  items = await api.lista(); pintarLista();
+})();
+</script>
+</body>
+</html>
