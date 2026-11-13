@@ -141,6 +141,29 @@ class Copiados:
             return str(IMAGENES / x["imagen"])
         return "\n".join(x.get("rutas", []))
 
+    def copiar_varios(self, indices, pb):
+        """Several at once. All text: one text, separated by blank lines. With files or images: all of them as files
+        (paste into Finder, Mail, Claude Code…); any text in the selection goes along as plain text."""
+        xs = [self.items[i] for i in indices if 0 <= i < len(self.items)]
+        if not xs:
+            return False
+        from AppKit import NSURL
+        textos = [x["texto"] for x in xs if x["tipo"] == "texto"]
+        rutas = []
+        for x in xs:
+            if x["tipo"] == "imagen":
+                rutas.append(str(IMAGENES / x["imagen"]))
+            elif x["tipo"] == "archivos":
+                rutas += x["rutas"]
+        pb.clearContents()
+        if rutas:
+            pb.writeObjects_([NSURL.fileURLWithPath_(r) for r in rutas] + (["\n\n".join(textos)] if textos else []))
+        else:
+            pb.setString_forType_("\n\n".join(textos), "public.utf8-plain-text")
+        self.ignorar_cambio = pb.changeCount()  # don't add the combination to the history
+        self.ultimo = self.ignorar_cambio
+        return True
+
     def copiar_ruta(self, i, pb):
         texto = self.ruta(i)
         if not texto:

@@ -73,6 +73,17 @@
   .btn-copiar:active { transform: scale(.92); }
   .btn-copiar.hecho { background: rgba(52, 199, 89, .2); color: #34c759; }
   .btn-copiar .si { display: none; } .btn-copiar.hecho .si { display: block; } .btn-copiar.hecho .no { display: none; }
+  /* several at once: ⇧-click (or ⌘-click) rows */
+  .fila.cop.sel { background: rgba(10, 132, 255, .2); box-shadow: inset 0 0 0 1px rgba(10, 132, 255, .55); }
+  .fila.cop.sel:hover { background: rgba(10, 132, 255, .26); }
+  .seleccion { display: none; align-items: center; gap: 8px; margin: 8px -4px 0; padding: 6px 6px 6px 12px; border-radius: 12px; background: var(--fill); }
+  .seleccion.si { display: flex; animation: cambia .2s ease-out both; }
+  .seleccion span { flex: 1; font-size: 12.5px; font-weight: 600; }
+  .seleccion .boton { height: 28px; padding: 0 12px; font-size: 12px; }
+  .seleccion .boton.copiar-sel { background: rgba(52, 199, 89, .2); color: #4cd964; }
+  .seleccion .boton.copiar-sel:hover { background: rgba(52, 199, 89, .32); }
+  .seleccion .boton.copiar-sel.hecho { color: #34c759; }
+  .pista { font-size: 11px; color: var(--label3); text-align: center; margin-top: 6px; }
   .btn-ruta { background: var(--fill); color: var(--label2); }
   .btn-ruta:hover { background: var(--fill2); color: var(--label); }
   .btn-ruta.hecho { background: var(--fill); color: var(--label); }
@@ -181,7 +192,11 @@ window.mostrar = (t, y, yaAbierta) => {
 window.ocultar = () => { tipo = null; clearInterval(tSpot); card.classList.add('sale'); };
 window.soltando = (si) => document.body.classList.toggle('soltando', si);
 window.recargar = () => { if (tipo === 'copiados') cargarCopiados(); };
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') api.cerrar_tarjeta(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (sel.size) return limpiarSel();  // Esc first clears the clipboard selection
+  api.cerrar_tarjeta();
+});
 // As soon as you use it (click, scroll, type), the card stays until Esc, a click outside or a click on its icon.
 let fijada = false;
 const fijar = () => { if (!fijada && tipo) { fijada = true; api.fijar(); } };
@@ -249,9 +264,19 @@ const VISTAS = {
   },
 
   async copiados() {
-    card.innerHTML = `<h2>Clipboard</h2><div class="buscar">${I.lupa}<input id="q" placeholder="Search"></div><div class="lista" id="cl"></div>`;
+    card.innerHTML = `<h2>Clipboard</h2><div class="buscar">${I.lupa}<input id="q" placeholder="Search"></div><div class="lista" id="cl"></div>
+      <div class="seleccion" id="sel"><span id="seln"></span><button class="boton" id="sel-no">Clear</button><button class="boton copiar-sel" id="sel-si">Copy</button></div>
+      <div class="pista" id="pista">⇧-click to select several</div>`;
+    sel.clear(); ultimaFila = null;
     $('#q').addEventListener('input', pintarCopiados);
-    $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#cl .btn-copiar[data-copiar]')?.click(); });
+    $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') sel.size ? $('#sel-si').click() : $('#cl .btn-copiar[data-copiar]')?.click(); });
+    $('#sel-no').onclick = limpiarSel;
+    $('#sel-si').onclick = async () => {
+      const b = $('#sel-si'), n = sel.size;
+      await api.copiar_varios([...sel]);
+      b.classList.add('hecho'); b.textContent = `Copied ${n}`;
+      setTimeout(() => limpiarSel(), 1100);
+    };
     $('#cl').addEventListener('click', async (e) => {
       const q = e.target.closest('[data-quitar]');
       if (q) { e.stopPropagation(); await api.borrar_copiado(+q.dataset.quitar); return cargarCopiados(); }
@@ -265,8 +290,20 @@ const VISTAS = {
         clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('hecho'); b.title = titulo; }, 1600);
         return;
       }
+      const f = e.target.closest('.fila'); if (!f) return;
+      const i = +f.dataset.i;
+      // ⇧-click (or ⌘-click): select several. The row you clicked just before counts too.
+      if (e.shiftKey || e.metaKey) {
+        getSelection().removeAllRanges();
+        if (!sel.size && ultimaFila !== null && ultimaFila !== i) sel.add(ultimaFila);
+        sel.has(i) ? sel.delete(i) : sel.add(i);
+        document.querySelectorAll('#cl .fila.abierta').forEach(x => x.classList.remove('abierta'));
+        return pintarSel();
+      }
+      ultimaFila = i;
+      if (sel.size) return limpiarSel();
       // Clicking a row expands it to show it in full (clicking again collapses it).
-      const f = e.target.closest('.fila'); if (!f || String(getSelection())) return;
+      if (String(getSelection())) return;
       f.classList.toggle('abierta');
     });
     await cargarCopiados();
@@ -346,9 +383,21 @@ const VISTAS = {
 };
 
 async function cargarCopiados() {
+  const antes = copiados[0]?.fecha;
   copiados = await api.copiados();
+  if (copiados[0]?.fecha !== antes) { sel.clear(); ultimaFila = null; }  // positions changed: start over
   if (tipo === 'copiados') pintarCopiados();
 }
+let sel = new Set(), ultimaFila = null;
+function pintarSel() {
+  document.querySelectorAll('#cl .fila.cop').forEach(f => f.classList.toggle('sel', sel.has(+f.dataset.i)));
+  const b = $('#sel-si'); if (!b) return;
+  b.classList.remove('hecho'); b.textContent = `Copy ${sel.size}`;
+  $('#seln').textContent = `${sel.size} selected`;
+  $('#sel').classList.toggle('si', sel.size > 0);
+  $('#pista').style.display = sel.size ? 'none' : '';
+}
+function limpiarSel() { sel.clear(); pintarSel(); }
 function pintarCopiados() {
   const q = ($('#q')?.value || '').trim().toLowerCase();
   const vis = copiados.filter(c => !q || (c.texto || (c.nombres || []).join(' ')).toLowerCase().includes(q));
@@ -361,6 +410,7 @@ function pintarCopiados() {
     else cuerpo = `<img class="ic" src="${c.icono}"><div class="info"><div class="n">${esc(c.nombres.join(', '))}</div><div class="d">${c.rutas.length > 1 ? c.rutas.length + ' files' : 'File'} · ${esc(c.rutas.join(', '))}</div></div>`;
     return `<div class="fila cop" data-i="${c.i}">${cuerpo}<span class="hora">${hace(c.fecha)}</span><span class="acc" data-quitar="${c.i}" title="Remove">${I.quitar}</span>${c.tipo === 'texto' ? '' : `<button class="btn-copiar btn-ruta" data-ruta="${c.i}" title="Copy path">${I.ruta}</button>`}<button class="btn-copiar" data-copiar="${c.i}" title="Copy">${I.copiar}</button></div>`;
   }).join('');
+  pintarSel();
 }
 </script>
 </body>

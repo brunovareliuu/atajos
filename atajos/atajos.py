@@ -365,6 +365,9 @@ class Api:
         self._app.empujarEstado()
         return True
 
+    def copiar_varios(self, indices):
+        return self._cop.copiar_varios([int(i) for i in indices], NSPasteboard.generalPasteboard())
+
     def copiar_ruta(self, i):
         return self._cop.copiar_ruta(int(i), NSPasteboard.generalPasteboard())
 
