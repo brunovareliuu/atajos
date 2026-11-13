@@ -24,6 +24,7 @@ from AppKit import (
     NSMenuItem,
     NSOpenPanel,
     NSPanel,
+    NSEvent,
     NSScreen,
     NSToolbar,
     NSTrackingArea,
@@ -359,6 +360,12 @@ class App(NSObject):
 
     @objc.python_method
     def pantalla(self):
+        """The screen you're using: the one with the mouse (with two monitors, mainScreen can be the other one)."""
+        m = NSEvent.mouseLocation()
+        for sc in NSScreen.screens():
+            r = sc.frame()
+            if r.origin.x <= m.x <= r.origin.x + r.size.width and r.origin.y <= m.y <= r.origin.y + r.size.height:
+                return sc
         return NSScreen.mainScreen() or NSScreen.screens()[0]
 
     @objc.python_method

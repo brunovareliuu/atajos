@@ -573,6 +573,7 @@ class App(NSObject):
     def traerBarra(self):
         """Moves the open bar to the screen you're on: it slides out there."""
         self.cerrarTarjeta()
+        self.avisarDictado("salir")  # the dictation card doesn't stay behind on the other screen (unless pinned)
         self.barra.setFrame_display_(self.marcoBarra(None, True), False)
         animar(self.barra, self.marcoBarra(), 0.32)
 
@@ -873,6 +874,14 @@ class App(NSObject):
             time.sleep(1.0)
 
     def tic_(self, _):
+        # Follow you: if the mouse has been on another screen for a moment, the bar moves there.
+        if self.barra_visible and self.barraEnOtraPantalla() and not NSEvent.pressedMouseButtons():
+            self.otra_pantalla = getattr(self, "otra_pantalla", 0) + 1
+            if self.otra_pantalla >= 2:  # ~0.5–1 s, so crossing screens on the way somewhere doesn't make it jump
+                self.otra_pantalla = 0
+                self.traerBarra()
+        else:
+            self.otra_pantalla = 0
         try:
             if self.copiados.revisar(NSPasteboard.generalPasteboard()):
                 self.empujarEstado()
