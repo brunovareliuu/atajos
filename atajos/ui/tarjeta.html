@@ -73,6 +73,9 @@
   .btn-copiar:active { transform: scale(.92); }
   .btn-copiar.hecho { background: rgba(52, 199, 89, .2); color: #34c759; }
   .btn-copiar .si { display: none; } .btn-copiar.hecho .si { display: block; } .btn-copiar.hecho .no { display: none; }
+  .btn-ruta { background: var(--fill); color: var(--label2); }
+  .btn-ruta:hover { background: var(--fill2); color: var(--label); }
+  .btn-ruta.hecho { background: var(--fill); color: var(--label); }
   .vacio { color: var(--label3); font-size: 12.5px; padding: 16px 0; text-align: center; }
   .buscar { position: relative; margin-bottom: 8px; }
   .buscar input { width: 100%; height: 30px; border: 0; outline: none; border-radius: 9px; background: var(--fill); padding: 0 10px 0 30px; font: 13px system-ui; color: var(--label); }
@@ -160,6 +163,7 @@ const I = {
   term: '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l4 4-4 4M9 12h4"/></svg>',
   airdrop: '<svg width="26" height="26" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5.2 14.6a6.8 6.8 0 1 1 9.6 0"/><path d="M7.6 12.2a3.4 3.4 0 1 1 4.8 0"/><circle cx="10" cy="10" r=".9" fill="currentColor"/></svg>',
   copiar: '<svg class="no" width="13" height="14" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7.5" height="8.5" rx="1.8"/><path d="M8.5 1.5H2.8A1.3 1.3 0 0 0 1.5 2.8v6.7"/></svg><svg class="si" width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 5 9.5 10 3"/></svg>',
+  ruta: '<svg class="no" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 4.25c0-.83.67-1.5 1.5-1.5h3l1.5 1.5h5c.83 0 1.5.67 1.5 1.5v6c0 .83-.67 1.5-1.5 1.5h-9.5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M5.5 9.25h5M8.75 7.5l1.75 1.75L8.75 11"/></svg><svg class="si" width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 5 9.5 10 3"/></svg>',
   lupa: '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><path d="m12.5 12.5-3.3-3.3"/></svg>',
 };
 
@@ -247,16 +251,18 @@ const VISTAS = {
   async copiados() {
     card.innerHTML = `<h2>Clipboard</h2><div class="buscar">${I.lupa}<input id="q" placeholder="Search"></div><div class="lista" id="cl"></div>`;
     $('#q').addEventListener('input', pintarCopiados);
-    $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#cl .btn-copiar')?.click(); });
+    $('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#cl .btn-copiar[data-copiar]')?.click(); });
     $('#cl').addEventListener('click', async (e) => {
       const q = e.target.closest('[data-quitar]');
       if (q) { e.stopPropagation(); await api.borrar_copiado(+q.dataset.quitar); return cargarCopiados(); }
       const b = e.target.closest('.btn-copiar');
       if (b) {
         e.stopPropagation();
-        await api.copiar(+b.dataset.copiar);
+        if (b.dataset.ruta !== undefined) await api.copiar_ruta(+b.dataset.ruta);
+        else await api.copiar(+b.dataset.copiar);
+        const titulo = b.dataset.ruta !== undefined ? 'Copy path' : 'Copy';
         b.classList.add('hecho'); b.title = 'Copied';
-        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('hecho'); b.title = 'Copy'; }, 1600);
+        clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove('hecho'); b.title = titulo; }, 1600);
         return;
       }
       // Clicking a row expands it to show it in full (clicking again collapses it).
@@ -353,7 +359,7 @@ function pintarCopiados() {
     if (c.tipo === 'texto') cuerpo = `<div class="info"><div class="clip">${esc(c.texto)}</div></div>`;
     else if (c.tipo === 'imagen') cuerpo = `<img class="mini" src="${c.mini}"><div class="info"><div class="n">Image</div></div>`;
     else cuerpo = `<img class="ic" src="${c.icono}"><div class="info"><div class="n">${esc(c.nombres.join(', '))}</div><div class="d">${c.rutas.length > 1 ? c.rutas.length + ' files' : 'File'} · ${esc(c.rutas.join(', '))}</div></div>`;
-    return `<div class="fila cop" data-i="${c.i}">${cuerpo}<span class="hora">${hace(c.fecha)}</span><span class="acc" data-quitar="${c.i}" title="Remove">${I.quitar}</span><button class="btn-copiar" data-copiar="${c.i}" title="Copy">${I.copiar}</button></div>`;
+    return `<div class="fila cop" data-i="${c.i}">${cuerpo}<span class="hora">${hace(c.fecha)}</span><span class="acc" data-quitar="${c.i}" title="Remove">${I.quitar}</span>${c.tipo === 'texto' ? '' : `<button class="btn-copiar btn-ruta" data-ruta="${c.i}" title="Copy path">${I.ruta}</button>`}<button class="btn-copiar" data-copiar="${c.i}" title="Copy">${I.copiar}</button></div>`;
   }).join('');
 }
 </script>

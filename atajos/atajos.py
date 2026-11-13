@@ -365,6 +365,9 @@ class Api:
         self._app.empujarEstado()
         return True
 
+    def copiar_ruta(self, i):
+        return self._cop.copiar_ruta(int(i), NSPasteboard.generalPasteboard())
+
     def borrar_copiado(self, i):
         self._cop.borrar(int(i))
         return True

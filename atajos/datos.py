@@ -134,6 +134,23 @@ class Copiados:
             self.items[0]["fecha"] = time.time()
         self.guardar()
 
+    def ruta(self, i):
+        """Path of a copied file or image (images live as PNGs in Atajos' folder)."""
+        x = self.items[i]
+        if x["tipo"] == "imagen":
+            return str(IMAGENES / x["imagen"])
+        return "\n".join(x.get("rutas", []))
+
+    def copiar_ruta(self, i, pb):
+        texto = self.ruta(i)
+        if not texto:
+            return False
+        pb.clearContents()
+        pb.setString_forType_(texto, "public.utf8-plain-text")
+        self.ignorar_cambio = pb.changeCount()  # don't add the path to the history as a new item
+        self.ultimo = self.ignorar_cambio
+        return True
+
     def borrar(self, i):
         with self.lock:
             x = self.items.pop(i)
