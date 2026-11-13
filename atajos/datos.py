@@ -406,7 +406,7 @@ def sesiones(n=10):
             c = _leer_sesion(ruta)
         except Exception:
             continue
-        if c["entrada"].startswith("sdk"):  # sessions started by claude -p (Harvey, the admin…), not yours
+        if c["entrada"].startswith("sdk"):  # sessions started by `claude -p` (scripts and other tools), not yours
             continue
         titulo = c["titulo"] or c["primero"] or c["ultimo"]
         if not titulo:
@@ -425,7 +425,7 @@ def _corriendo(bundle):
 
 
 def abrir_terminal(cwd, comando):
-    """New Terminal window in `cwd` running `comando` (Bruno prefers Terminal over Ghostty)."""
+    """New Terminal window in `cwd` running `comando` (Terminal rather than Ghostty)."""
     linea = f"cd {shlex.quote(cwd)} && {comando}"
     # ensure_ascii=False: AppleScript doesn't understand \uXXXX, so folders with accents or ñ would break.
     script = f"""tell application "Terminal"

@@ -52,7 +52,7 @@ AQUI = Path(__file__).resolve().parent
 UI = AQUI / "ui"
 
 BARRA_W = 58          # bar width
-MARGEN = 0            # flush with the screen edge (option A, Bruno's pick)
+MARGEN = 0            # flush with the screen edge
 FILETE = 22           # small curved fillets top and bottom that blend it into the edge
 RADIO = 22            # rounded inner corners
 MATERIAL = int(os.environ.get("ATAJOS_MATERIAL", "15"))  # NSVisualEffectView: 13 hudWindow, 15 fullScreenUI
@@ -83,7 +83,7 @@ def vidrio_oscuro(frame, radio, tarjeta=False):
         v = GlassView.alloc().initWithFrame_(frame)
         v.setCornerRadius_(radio)
         estilo, alfa = VIDRIO
-        if tarjeta:  # cards are frostier than the bar so they're readable (Bruno's request)
+        if tarjeta:  # cards are frostier than the bar so they're readable
             estilo, alfa = TARJETA_VIDRIO
         v.setStyle_(estilo)
         v.setTintColor_(NSColor.colorWithWhite_alpha_(0.0, alfa))
@@ -730,7 +730,7 @@ class App(NSObject):
 
     @objc.python_method
     def marcoTarjeta(self, tipo, h):
-        v = self.pantallaDeBarra().visibleFrame()  # the bar's screen, not the "active" one (Bruno uses two monitors)
+        v = self.pantallaDeBarra().visibleFrame()  # the bar's screen, not the "active" one (matters with two monitors)
         cy = self.centroIcono(tipo)
         h = min(h, v.size.height - 16)
         y = max(v.origin.y + 8, min(cy - h / 2, v.origin.y + v.size.height - 8 - h))

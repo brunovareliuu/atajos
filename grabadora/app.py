@@ -290,7 +290,7 @@ class App(NSObject):
         return False
 
     # ---------- mic pill + dictation card ----------
-    # Like Bruno's reference: a dark-glass pill on the screen edge with a ring; on hover
+    # A dark-glass pill on the screen edge with a ring; on hover
     # (or with ⌃⌥⌘G, or a click) a card with the live text slides out beside it.
     BW, BH = 58, 80          # pill
     CW, CH = 384, 470        # card
