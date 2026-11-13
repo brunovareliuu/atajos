@@ -1,15 +1,15 @@
 #!/bin/bash
-# Arma Atajos.app (sin Dock; barrita de íconos en la orilla derecha), la instala en /Applications y la deja abriendo
-# sola al iniciar sesión para que ⌃⌥⌘A funcione siempre. Tras cambiar el código basta reiniciarla:
+# Builds Atajos.app (no Dock icon; an icon bar on the right screen edge), installs it in /Applications and sets it
+# to open at login so ⌃⌥⌘A always works. After changing the code, just restart it:
 #   pkill -f atajos/atajos.py; open -a /Applications/Atajos.app
 set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 APP="/Applications/Atajos.app"
 TMP="$(mktemp -d)"
 
-# Entorno de Python (la primera vez): con uv si está, si no con venv. Necesita Python 3.10+.
+# Python environment (first run): with uv if available, otherwise venv. Needs Python 3.10+.
 if [ ! -x "$AQUI/.venv/bin/python" ]; then
-  echo "Creando el entorno de Python…"
+  echo "Creating the Python environment…"
   if command -v uv >/dev/null 2>&1; then
     uv venv -q --python 3.12 "$AQUI/.venv"
     uv pip install -q --python "$AQUI/.venv/bin/python" -r "$AQUI/requirements.txt"
@@ -19,7 +19,7 @@ if [ ! -x "$AQUI/.venv/bin/python" ]; then
   fi
 fi
 
-# Ícono: cuadrícula de 4 piezas de vidrio, una naranja.
+# Icon: a grid of 4 glass tiles, one of them orange.
 "$AQUI/.venv/bin/python" - "$TMP" <<'PY'
 import os, sys
 from PIL import Image, ImageDraw
@@ -66,7 +66,7 @@ cat > "$APP/Contents/Info.plist" <<PL
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
-  <key>NSAppleEventsUsageDescription</key><string>Atajos controla Spotify (canción actual, pausa, siguiente).</string>
+  <key>NSAppleEventsUsageDescription</key><string>Atajos controls Spotify (current track, pause, next).</string>
 </dict></plist>
 PL
 
@@ -86,4 +86,4 @@ cat > "$AGENTE" <<AG
   <key>RunAtLoad</key><true/>
 </dict></plist>
 AG
-echo "Instalada en $APP"
+echo "Installed at $APP"

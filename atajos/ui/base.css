@@ -1,4 +1,4 @@
-/* Atajos: siempre vidrio oscuro, sin importar el modo de la Mac. */
+/* Atajos: always dark glass, whatever the Mac's appearance. */
 :root {
   color-scheme: dark;
   --label: rgba(255, 255, 255, .95);
@@ -22,7 +22,7 @@ body {
   color: var(--label);
   font: 13px/1.4 system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);  /* que se lea sobre el vidrio transparente */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .35);  /* readable over the transparent glass */
   -webkit-user-select: none; user-select: none; cursor: default;
   overflow: hidden;
 }

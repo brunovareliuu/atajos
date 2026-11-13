@@ -1,6 +1,6 @@
 #!/bin/bash
-# statusLine de Claude Code: guarda el uso del plan (rate_limits) para que Atajos lo enseñe,
-# y pinta una línea corta en Claude Code: «5 h 23 % · semana 41 %».
+# Claude Code statusLine: saves the plan usage (rate_limits) so Atajos can show it,
+# and prints a short line in Claude Code: "5 h 23 % · semana 41 %".
 d="$HOME/Library/Application Support/Atajos"
 mkdir -p "$d"
 input=$(cat)

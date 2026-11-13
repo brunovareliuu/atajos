@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="oscuro">
+<html lang="en" class="oscuro">
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="comun.css">
@@ -29,7 +29,7 @@
       <span class="stop"></span>
     </div>
   </div>
-  <div class="etq num" id="etq">Dictar</div>
+  <div class="etq num" id="etq">Dictate</div>
 <script>
 const C = 119.4, $ = (s) => document.querySelector(s);
 let tPoll = null, suave = 0;
@@ -48,10 +48,10 @@ window.grabacion = (si) => {
       $('#etq').textContent = fmt(segundos);
     }, 70);
   } else {
-    aro(0); $('#etq').textContent = 'Dictar';
+    aro(0); $('#etq').textContent = 'Dictate';
   }
 };
-window.transcrito = (it) => { if (!document.body.classList.contains('rec')) { $('#etq').textContent = 'Listo'; setTimeout(() => { if (!document.body.classList.contains('rec')) $('#etq').textContent = 'Dictar'; }, 4000); } };
+window.transcrito = (it) => { if (!document.body.classList.contains('rec')) { $('#etq').textContent = 'Done'; setTimeout(() => { if (!document.body.classList.contains('rec')) $('#etq').textContent = 'Dictate'; }, 4000); } };
 (async () => { if (await api.grabando()) window.grabacion(true); })();
 </script>
 </body>

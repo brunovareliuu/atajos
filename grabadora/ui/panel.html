@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="comun.css">
 <style>
-  /* Dos formas: barrita (lista / grabando) y tarjeta (al terminar, con el texto). La ventana cambia de tamaño con api.tamano_panel. */
-  html.oscuro { --accent: #ff3b30; --accent-soft: rgba(255, 59, 48, .25); }  /* el dictado es rojo */
+  /* Two shapes: bar (ready / recording) and card (when done, with the text). The window resizes via api.tamano_panel. */
+  html.oscuro { --accent: #ff3b30; --accent-soft: rgba(255, 59, 48, .25); }  /* dictation is red */
   body { display: flex; flex-direction: column; }
-  /* Copy igual que los botones de su izquierda (mismo vidrio sutil de .cap) */
+  /* Copy looks like the buttons to its left (same subtle .cap glass) */
   .cap.vidrio kbd { background: rgba(255,255,255,.12); color: var(--label2); }
   [data-solo] { display: none !important; }
   body[data-e="grabando"] [data-solo~="grabando"],
@@ -15,7 +15,7 @@
   body[data-e="listo"] [data-solo~="listo"],
   body[data-e="inactivo"] [data-solo~="inactivo"] { display: flex !important; }
 
-  /* ---------- barrita ---------- */
+  /* ---------- bar ---------- */
   .barrita { height: 60px; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 18px; }
   .barrita .ico { width: 20px; display: grid; place-items: center; color: var(--label2); flex-shrink: 0; }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); animation: late 1.2s ease-in-out infinite; }
@@ -29,7 +29,7 @@
   .redondo.stop { background: rgba(255, 255, 255, .92); }
   .redondo.stop i { width: 13px; height: 13px; border-radius: 3.5px; background: var(--accent); }
 
-  /* ---------- tarjeta ---------- */
+  /* ---------- card ---------- */
   .tarjeta { flex-direction: column; padding: 16px 16px 14px; gap: 10px; height: 100%; }
   .top { display: flex; align-items: center; gap: 8px; height: 26px; }
   .titulo-app { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; display: flex; align-items: center; gap: 7px; }
@@ -46,25 +46,25 @@
   .cap.acento kbd { background: rgba(255,255,255,.22); color: rgba(255,255,255,.9); }
   .copiado .ico-copiar { display: none; } .ico-ok { display: none; } .copiado .ico-ok { display: block; }
 
-  /* medidor oculto para calcular el alto del texto */
+  /* hidden measurer used to compute the text height */
   #medidor { position: absolute; visibility: hidden; left: 0; top: 0; width: 340px; font-size: 16px; line-height: 1.5; letter-spacing: -0.01em; white-space: pre-wrap; word-wrap: break-word; }
 </style>
 </head>
 <body data-e="inactivo">
-  <!-- barrita: lista para grabar -->
+  <!-- bar: ready to record -->
   <div class="barrita" data-solo="inactivo">
     <span class="ico"><svg width="14" height="17" viewBox="0 0 14 17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg></span>
     <span class="msg" id="msg">Dictate · ⌃⌥⌘G</span>
     <button class="redondo rec" id="grabar" title="Record (⌃⌥⌘G)"><svg width="13" height="16" viewBox="0 0 14 17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg></button>
   </div>
-  <!-- barrita: grabando (parar a la derecha) -->
+  <!-- bar: recording (stop on the right) -->
   <div class="barrita" data-solo="grabando">
     <span class="ico"><span class="dot"></span></span>
     <canvas id="onda"></canvas>
     <span class="reloj num" id="reloj">0:00</span>
     <button class="redondo stop" id="detener" title="Stop (⌃⌥⌘G)"><i></i></button>
   </div>
-  <!-- tarjeta: al terminar -->
+  <!-- card: when done -->
   <div class="tarjeta" data-solo="afinando listo">
     <div class="top">
       <span class="titulo-app"><svg width="12" height="14" viewBox="0 0 14 17" fill="none" stroke="var(--accent)" stroke-width="1.9" stroke-linecap="round"><rect x="4" y="1" width="6" height="9.5" rx="3"/><path d="M1.5 8.5a5.5 5.5 0 0 0 11 0M7 14v2"/></svg>Dictation</span>
@@ -107,7 +107,7 @@ function poner(e, txt) {
 }
 function pintarTexto() { $('#texto').textContent = texto; }
 
-// onda
+// waveform
 const cv = $('#onda'), cx = cv.getContext('2d');
 function ajustar() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; }
 function dibujar() {
@@ -165,7 +165,7 @@ async function copiar(cerrar) {
   if (cerrar) setTimeout(() => { api.cerrar_panel(); setTimeout(() => poner('inactivo'), 300); }, 450);
 }
 
-// llamadas desde Python
+// calls from Python
 window.atajo = () => { estado === 'grabando' ? detener() : empezar(); };
 window.alAbrir = (grabar) => { if (grabar && estado !== 'grabando') empezar(); else tamano(); };
 window.vivo = ({ fijo, tentativo }) => { if (estado === 'grabando') texto = `${fijo} ${tentativo}`.trim(); };

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <link rel="stylesheet" href="comun.css">
 <style>
-  /* La barra lateral de vidrio la pinta macOS (NSGlassEffectView) en x 8–276; aquí solo va su contenido. */
+  /* macOS paints the glass sidebar (NSGlassEffectView) at x 8–276; only its content goes here. */
   .lateral { position: absolute; left: 8px; top: 8px; bottom: 8px; width: 268px; display: flex; flex-direction: column; }
-  .lat-top { height: 44px; flex-shrink: 0; } /* zona de los semáforos; macOS se queda los clics */
+  .lat-top { height: 44px; flex-shrink: 0; } /* traffic-light area; macOS keeps the clicks */
   .icono-btn { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: var(--label2); }
   .icono-btn:hover { background: var(--fill); color: var(--label); }
   .fila-buscar { display: flex; gap: 6px; align-items: center; margin: 4px 10px 6px; flex-shrink: 0; }
@@ -42,7 +42,7 @@
   .vista { flex: 1; display: none; min-height: 0; }
   .vista.on { display: flex; }
 
-  /* grabar */
+  /* record */
   #grabar { flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 0 40px 60px; transition: padding .3s; }
   .reloj { font: 200 64px/1 system-ui; letter-spacing: -0.02em; color: var(--label); transition: font-size .3s, color .3s; }
   .reloj.apagado { color: var(--label3); }
@@ -66,7 +66,7 @@
   #grabar.grabando .vivo { display: block; }
   #grabar.grabando .seg, #grabar.grabando .atajo-tip { display: none; }
 
-  /* detalle */
+  /* detail */
   #detalle { flex-direction: column; padding: 0 48px 22px; gap: 4px; }
   .titulo { font-size: 26px; font-weight: 700; letter-spacing: -0.022em; outline: none; border-radius: 6px; padding: 0 4px; margin-left: -4px; }
   .titulo:focus { background: var(--fill); }
@@ -99,9 +99,9 @@
   <div class="fila-buscar">
   <div class="buscar">
     <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><path d="m12.5 12.5-3.3-3.3"/></svg>
-    <input id="q" placeholder="Buscar">
+    <input id="q" placeholder="Search">
   </div>
-    <button class="icono-btn" id="nueva" title="Nueva grabación (⌘N)">
+    <button class="icono-btn" id="nueva" title="New Recording (⌘N)">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9v3.5a1.5 1.5 0 0 1-1.5 1.5H3.5A1.5 1.5 0 0 1 2 12.5V4a1.5 1.5 0 0 1 1.5-1.5H7"/><path d="M12 1.8a1.3 1.3 0 0 1 1.9 1.9L8.5 9.1 6 9.8l.7-2.5z"/></svg>
     </button>
   </div>
@@ -109,7 +109,7 @@
   <div class="lat-pie">
     <button class="cap" id="importar">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9.5V1.5M4 4.5l3-3 3 3M1.5 9.5v1.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V9.5"/></svg>
-      Transcribir un audio
+      Transcribe a File
     </button>
   </div>
 </div>
@@ -118,12 +118,12 @@
   <div class="barra"></div>
 
   <section class="vista on" id="grabar">
-    <div class="seg" id="idiomas"><button data-l="es">Español</button><button data-l="en">English</button><button data-l="">Detectar</button></div>
+    <div class="seg" id="idiomas"><button data-l="es">Spanish</button><button data-l="en">English</button><button data-l="">Detect</button></div>
     <div class="reloj num apagado" id="reloj">0:00</div>
     <canvas id="onda"></canvas>
-    <button class="rec" id="rec" aria-label="Grabar"><span class="in"></span></button>
-    <div class="ayuda" id="ayuda">Haz clic o presiona <kbd>espacio</kbd></div>
-    <div class="atajo-tip">Desde cualquier app: <kbd>⌃⌥⌘G</kbd></div>
+    <button class="rec" id="rec" aria-label="Record"><span class="in"></span></button>
+    <div class="ayuda" id="ayuda">Click or press <kbd>space</kbd></div>
+    <div class="atajo-tip">From any app: <kbd>⌃⌥⌘G</kbd></div>
     <div class="vivo selectable" id="vivo"></div>
   </section>
 
@@ -138,7 +138,7 @@
     <div class="hoja" id="hoja"></div>
     <div class="abajo">
       <span id="guardado"></span>
-      <span class="der">Volver a transcribir
+      <span class="der">Transcribe again
         <span class="seg" id="reidioma"><button data-l="es">ES</button><button data-l="en">EN</button><button data-l="">Auto</button></span>
       </span>
     </div>
@@ -158,32 +158,32 @@ const I = {
 let items = [], sel = null, grabando = false, idioma = localStorage.idioma ?? 'es', niveles = [], sonando = null, tPoll = null;
 
 const fmt = (s) => { s = Math.max(0, Math.round(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = String(s % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; };
-const titulo = (it) => it.titulo || (it.texto ? it.texto.split(/\s+/).slice(0, 7).join(' ').replace(/[.,;:]$/, '') : (it.origen && it.origen !== 'grabado' ? it.origen : 'Nota de voz'));
+const titulo = (it) => it.titulo || (it.texto ? it.texto.split(/\s+/).slice(0, 7).join(' ').replace(/[.,;:]$/, '') : (it.origen && it.origen !== 'grabado' ? it.origen : 'Voice note'));
 const extracto = (it) => it.texto ? it.texto.split(/\s+/).slice(it.titulo ? 0 : 7, (it.titulo ? 0 : 7) + 14).join(' ') : '';
-const hora = (iso) => new Date(iso).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
-const fechaLarga = (iso) => new Date(iso).toLocaleString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+const hora = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const fechaLarga = (iso) => new Date(iso).toLocaleString('en-US', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const nombreIdioma = { es: 'Español', en: 'Inglés' };
+const nombreIdioma = { es: 'Spanish', en: 'English' };
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('on'), 1500); }
 
 function grupoDe(iso) {
   const d = new Date(iso), hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const dias = Math.round((hoy - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5);
-  if (dias <= 0) return 'Hoy'; if (dias === 1) return 'Ayer'; if (dias < 7) return 'Últimos 7 días';
-  const t = d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }); return t[0].toUpperCase() + t.slice(1);
+  if (dias <= 0) return 'Today'; if (dias === 1) return 'Yesterday'; if (dias < 7) return 'Previous 7 Days';
+  const t = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); return t[0].toUpperCase() + t.slice(1);
 }
-function cuando(it) { const g = grupoDe(it.fecha); return g === 'Hoy' || g === 'Ayer' ? hora(it.fecha) : new Date(it.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }); }
+function cuando(it) { const g = grupoDe(it.fecha); return g === 'Today' || g === 'Yesterday' ? hora(it.fecha) : new Date(it.fecha).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }); }
 
 function pintarLista() {
   const q = $('#q').value.trim().toLowerCase();
   const vis = items.filter(i => !q || (titulo(i) + ' ' + i.texto).toLowerCase().includes(q));
   const el = $('#lista');
-  if (!vis.length) { el.innerHTML = `<div class="nada">${q ? 'Sin resultados' : 'Tus grabaciones van a aparecer aquí.'}</div>`; return; }
+  if (!vis.length) { el.innerHTML = `<div class="nada">${q ? 'No results' : 'Your recordings will show up here.'}</div>`; return; }
   let html = '', g = null;
   for (const it of vis) {
     const gg = grupoDe(it.fecha);
     if (gg !== g) { html += `<div class="grupo">${gg}</div>`; g = gg; }
-    const t = it.estado === 'transcribiendo' && !it.texto ? '<span class="vacio">Transcribiendo…</span>' : esc(titulo(it));
+    const t = it.estado === 'transcribiendo' && !it.texto ? '<span class="vacio">Transcribing…</span>' : esc(titulo(it));
     const pre = it.estado === 'transcribiendo' ? '<span class="barras"><i></i><i></i><i></i><i></i></span>' : '';
     html += `<button class="fila ${sel === it.id ? 'activa' : ''}" data-id="${it.id}"><div class="t">${t}</div><div class="m num">${pre}<span>${cuando(it)}</span><span class="ex">${esc(extracto(it)) || fmt(it.duracion)}</span></div></button>`;
   }
@@ -193,10 +193,10 @@ function pintarLista() {
 function ver(vista) {
   document.querySelectorAll('.vista').forEach(v => v.classList.toggle('on', v.id === vista));
   $('#barra').innerHTML = vista === 'detalle' ? `
-    <button class="cap solo" id="play" title="Escuchar">${sonando === sel ? I.stop : I.play}</button>
-    <button class="cap solo" id="enFinder" title="Mostrar en Finder">${I.finder}</button>
-    <button class="cap solo peligro" id="borrar" title="Borrar">${I.borrar}</button>
-    <button class="cap acento" id="copiar">${I.copiar}Copiar</button>` : '';
+    <button class="cap solo" id="play" title="Play">${sonando === sel ? I.stop : I.play}</button>
+    <button class="cap solo" id="enFinder" title="Show in Finder">${I.finder}</button>
+    <button class="cap solo peligro" id="borrar" title="Delete">${I.borrar}</button>
+    <button class="cap acento" id="copiar">${I.copiar}Copy</button>` : '';
   if (vista === 'detalle') conectarBarra();
 }
 
@@ -206,27 +206,27 @@ function abrir(id) {
   $('#titulo').textContent = titulo(it);
   const partes = [fechaLarga(it.fecha), fmt(it.duracion)];
   if (it.idioma && nombreIdioma[it.idioma]) partes.push(nombreIdioma[it.idioma]);
-  if (it.texto) partes.push(`${it.texto.split(/\s+/).filter(Boolean).length} palabras`);
+  if (it.texto) partes.push(`${it.texto.split(/\s+/).filter(Boolean).length} words`);
   $('#meta').innerHTML = partes.map(p => `<span>${esc(p)}</span>`).join('');
   document.querySelectorAll('#reidioma button').forEach(b => b.classList.toggle('on', b.dataset.l === (it.idioma === 'en' ? 'en' : it.idioma === 'es' ? 'es' : '')));
-  $('#guardado').textContent = it.tardo ? `Transcrito en ${it.tardo} s, sin internet` : '';
+  $('#guardado').textContent = it.tardo ? `Transcribed in ${it.tardo} s, offline` : '';
   const hoja = $('#hoja');
   if (it.estado === 'transcribiendo' && it.texto) {
-    hoja.innerHTML = `<div class="afinando"><span class="barras"><i></i><i></i><i></i><i></i></span>Afinando la transcripción…</div><div class="preview selectable">${esc(it.texto)}</div>`;
+    hoja.innerHTML = `<div class="afinando"><span class="barras"><i></i><i></i><i></i><i></i></span>Refining the transcript…</div><div class="preview selectable">${esc(it.texto)}</div>`;
   } else if (it.estado === 'transcribiendo') {
-    hoja.innerHTML = `<div class="cargando"><span class="barras"><i></i><i></i><i></i><i></i></span><div>Transcribiendo ${fmt(it.duracion)} de audio…</div></div>`;
+    hoja.innerHTML = `<div class="cargando"><span class="barras"><i></i><i></i><i></i><i></i></span><div>Transcribing ${fmt(it.duracion)} of audio…</div></div>`;
   } else if (it.estado === 'error') {
-    hoja.innerHTML = `<div class="error selectable">No se pudo transcribir: ${esc(it.error || '')}</div>`;
+    hoja.innerHTML = `<div class="error selectable">Couldn't transcribe: ${esc(it.error || '')}</div>`;
   } else {
     hoja.innerHTML = '<textarea id="texto" class="selectable" spellcheck="false"></textarea>';
     const ta = $('#texto'); ta.value = it.texto || '';
-    let t; ta.addEventListener('input', () => { it.texto = ta.value; clearTimeout(t); $('#guardado').textContent = 'Guardando…'; t = setTimeout(async () => { await api.editar(it.id, ta.value); $('#guardado').textContent = 'Guardado'; pintarLista(); }, 500); });
+    let t; ta.addEventListener('input', () => { it.texto = ta.value; clearTimeout(t); $('#guardado').textContent = 'Saving…'; t = setTimeout(async () => { await api.editar(it.id, ta.value); $('#guardado').textContent = 'Saved'; pintarLista(); }, 500); });
   }
 }
 window.abrirNota = (id) => { if (!grabando) abrir(id); };
 
 function conectarBarra() {
-  $('#copiar').onclick = async () => { const it = items.find(i => i.id === sel); if (it?.texto) { await api.copiar(it.texto); toast('Copiado'); } };
+  $('#copiar').onclick = async () => { const it = items.find(i => i.id === sel); if (it?.texto) { await api.copiar(it.texto); toast('Copied'); } };
   $('#play').onclick = async () => {
     if (sonando === sel) { await api.parar(); sonando = null; $('#play').innerHTML = I.play; return; }
     if (await api.reproducir(sel)) { sonando = sel; $('#play').innerHTML = I.stop; }
@@ -234,13 +234,13 @@ function conectarBarra() {
   $('#enFinder').onclick = () => api.finder(sel);
   $('#borrar').onclick = async () => {
     const b = $('#borrar');
-    if (!b.classList.contains('armado')) { b.classList.add('armado'); toast('Toca otra vez para borrar'); setTimeout(() => b.classList.remove('armado'), 2500); return; }
+    if (!b.classList.contains('armado')) { b.classList.add('armado'); toast('Click again to delete'); setTimeout(() => b.classList.remove('armado'), 2500); return; }
     if (sonando === sel) { await api.parar(); sonando = null; }
-    await api.borrar(sel); items = items.filter(i => i.id !== sel); sel = null; pintarLista(); ver('grabar'); toast('Movido a la papelera');
+    await api.borrar(sel); items = items.filter(i => i.id !== sel); sel = null; pintarLista(); ver('grabar'); toast('Moved to Trash');
   };
 }
 
-// ---------- grabar ----------
+// ---------- record ----------
 const cv = $('#onda'), cx = cv.getContext('2d');
 function ajustar() { const r = cv.getBoundingClientRect(); cv.width = r.width * devicePixelRatio; cv.height = r.height * devicePixelRatio; }
 function dibujar() {
@@ -263,8 +263,8 @@ async function alternar() {
     if (!r.ok) { $('#ayuda').textContent = r.error; return; }
     grabando = true; niveles = []; sel = null; pintarLista(); ver('grabar');
     $('#grabar').classList.add('grabando'); $('#rec').classList.add('on'); $('#reloj').classList.remove('apagado');
-    $('#vivo').innerHTML = '<span class="espera">Habla, aquí va saliendo el texto</span><span class="cursor"></span>';
-    $('#ayuda').innerHTML = '<kbd>espacio</kbd> termina · <kbd>esc</kbd> descarta';
+    $('#vivo').innerHTML = '<span class="espera">Start talking, the text shows up here</span><span class="cursor"></span>';
+    $('#ayuda').innerHTML = '<kbd>space</kbd> to finish · <kbd>esc</kbd> to discard';
     requestAnimationFrame(() => { ajustar(); dibujar(); });
     tPoll = setInterval(async () => {
       const { nivel, segundos } = await api.nivel();
@@ -274,7 +274,7 @@ async function alternar() {
   } else {
     pararUI();
     const it = await api.detener(idioma);
-    if (!it || it.descartado) { $('#ayuda').textContent = 'Muy corto, no se guardó'; return; }
+    if (!it || it.descartado) { $('#ayuda').textContent = 'Too short, not saved'; return; }
     items.unshift(it); abrir(it.id);
   }
 }
@@ -283,10 +283,10 @@ function pararUI() {
   $('#grabar').classList.remove('grabando'); $('#rec').classList.remove('on');
   $('#reloj').classList.add('apagado'); $('#reloj').textContent = '0:00'; $('#vivo').innerHTML = '';
   niveles = []; requestAnimationFrame(() => { ajustar(); dibujar(); });
-  $('#ayuda').innerHTML = 'Haz clic o presiona <kbd>espacio</kbd>';
+  $('#ayuda').innerHTML = 'Click or press <kbd>space</kbd>';
 }
 
-// ---------- avisos desde Python ----------
+// ---------- notifications from Python ----------
 window.transcrito = (it) => {
   const i = items.findIndex(x => x.id === it.id);
   if (i >= 0) items[i] = it; else items.unshift(it);
@@ -297,12 +297,12 @@ window.vivo = ({ fijo, tentativo }) => {
   const el = $('#vivo');
   el.innerHTML = (fijo || tentativo)
     ? `${esc(fijo)}${fijo && tentativo ? ' ' : ''}<span class="tent">${esc(tentativo)}</span><span class="cursor"></span>`
-    : '<span class="espera">Escuchando…</span><span class="cursor"></span>';
+    : '<span class="espera">Listening…</span><span class="cursor"></span>';
   el.scrollTop = el.scrollHeight;
 };
 window.finReproduccion = (id) => { if (sonando === id) { sonando = null; if (sel === id && $('#play')) $('#play').innerHTML = I.play; } };
 
-// ---------- eventos ----------
+// ---------- events ----------
 $('#rec').onclick = alternar;
 $('#nueva').onclick = () => { if (!grabando) { sel = null; pintarLista(); ver('grabar'); requestAnimationFrame(() => { ajustar(); dibujar(); }); } };
 $('#importar').onclick = async () => { const nuevos = await api.importar(idioma); if (nuevos?.length) { items.unshift(...nuevos.slice().reverse()); abrir(nuevos[0].id); } };
@@ -323,7 +323,7 @@ $('#titulo').addEventListener('blur', async (e) => {
 document.addEventListener('keydown', (e) => {
   const a = document.activeElement, enTexto = ['INPUT', 'TEXTAREA'].includes(a.tagName) || a.isContentEditable;
   if (e.code === 'Space' && !enTexto && $('#grabar').classList.contains('on')) { e.preventDefault(); alternar(); }
-  if (e.key === 'Escape' && grabando) { api.cancelar(); pararUI(); $('#ayuda').textContent = 'Descartado'; }
+  if (e.key === 'Escape' && grabando) { api.cancelar(); pararUI(); $('#ayuda').textContent = 'Discarded'; }
   if (e.metaKey && e.key === 'n' && !grabando) { e.preventDefault(); $('#nueva').click(); }
   if (e.metaKey && e.key === 'f') { e.preventDefault(); $('#q').focus(); }
 });

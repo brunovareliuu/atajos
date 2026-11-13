@@ -1,6 +1,6 @@
-"""Atajos: barrita vertical de vidrio oscuro en la orilla derecha con íconos y anillos de progreso.
-Al pasar el mouse por un ícono sale su tarjeta a la izquierda (con pico apuntando al ícono).
-⌃⌥⌘A la muestra / esconde. Íconos: Claude (uso), Spotify, Copiados, Archivos, AirDrop, Sesiones.
+"""Atajos: a slim vertical dark-glass bar on the right screen edge with icons and progress rings.
+Hovering an icon slides its card out to the left (with a pointer aimed at the icon).
+⌃⌥⌘A shows / hides it. Icons: Claude (usage), Spotify, Clipboard, Files, AirDrop, Sessions.
 """
 
 import ctypes
@@ -51,15 +51,15 @@ import datos
 AQUI = Path(__file__).resolve().parent
 UI = AQUI / "ui"
 
-BARRA_W = 58          # ancho de la barrita
-MARGEN = 0            # pegada a la orilla (opción A que eligió Bruno)
-FILETE = 22           # bordecitos curvos arriba y abajo que la unen con la orilla
-RADIO = 22            # esquinas redondas de adentro
+BARRA_W = 58          # bar width
+MARGEN = 0            # flush with the screen edge (option A, Bruno's pick)
+FILETE = 22           # small curved fillets top and bottom that blend it into the edge
+RADIO = 22            # rounded inner corners
 MATERIAL = int(os.environ.get("ATAJOS_MATERIAL", "15"))  # NSVisualEffectView: 13 hudWindow, 15 fullScreenUI
-TARJETA_W = 340       # ancho del vidrio de la tarjeta
-PICO = 12             # franja a la derecha de la tarjeta donde va el pico
-HUECO = 4             # entre la punta del pico y la barrita
-ABAJO_LIBRE = 0.0   # la píldora de Grabadora ya no existe: el dictado vive en esta barrita
+TARJETA_W = 340       # width of the card's glass
+PICO = 12             # strip to the right of the card that holds the pointer
+HUECO = 4             # gap between the pointer tip and the bar
+ABAJO_LIBRE = 0.0   # Grabadora's pill is gone: dictation lives in this bar
 
 BORDERLESS, NONACTIVATING = 0, 1 << 7
 ALL_SPACES, STATIONARY, FULLSCREEN_AUX = 1 << 0, 1 << 4, 1 << 8
@@ -72,10 +72,10 @@ except objc.error:
     GlassView = None
 
 
-# (estilo, tinte negro): 0 = regular, 1 = clear (más transparente). Se puede probar con ATAJOS_VIDRIO="1,0.2".
+# (style, black tint): 0 = regular, 1 = clear (more transparent). Try it with ATAJOS_VIDRIO="1,0.2".
 VIDRIO = tuple(float(x) for x in os.environ.get("ATAJOS_VIDRIO", "1,0.04").split(","))
 VIDRIO = (int(VIDRIO[0]), VIDRIO[1])
-TARJETA_VIDRIO = (0, 0.34)  # regular (más difuminado) + tinte oscuro
+TARJETA_VIDRIO = (0, 0.34)  # regular (more blurred) + dark tint
 
 
 def vidrio_oscuro(frame, radio, tarjeta=False):
@@ -83,7 +83,7 @@ def vidrio_oscuro(frame, radio, tarjeta=False):
         v = GlassView.alloc().initWithFrame_(frame)
         v.setCornerRadius_(radio)
         estilo, alfa = VIDRIO
-        if tarjeta:  # las tarjetas, más esmeriladas que la barrita para que se lean (pedido de Bruno)
+        if tarjeta:  # cards are frostier than the bar so they're readable (Bruno's request)
             estilo, alfa = TARJETA_VIDRIO
         v.setStyle_(estilo)
         v.setTintColor_(NSColor.colorWithWhite_alpha_(0.0, alfa))
@@ -98,7 +98,7 @@ def vidrio_oscuro(frame, radio, tarjeta=False):
     return v
 
 
-# ---------------------------------------------------------------- puente JS ⇄ Python
+# ---------------------------------------------------------------- JS ⇄ Python bridge
 PUENTE_JS = """
 (() => {
   let n = 0; const pend = {};
@@ -152,7 +152,7 @@ def airdrop(urls):
 
 
 class Vista(WKWebView):
-    """WebView que acepta el primer clic y manda por AirDrop lo que le sueltes encima."""
+    """WebView that accepts the first click and AirDrops whatever you drop on it."""
 
     def acceptsFirstMouse_(self, ev):
         return True
@@ -181,7 +181,7 @@ class Vista(WKWebView):
 
 class PanelBarra(NSPanel):
     def canBecomeKeyWindow(self):
-        return False  # la barrita nunca te roba el teclado
+        return False  # the bar never steals keyboard focus
 
     def canBecomeMainWindow(self):
         return False
@@ -189,7 +189,7 @@ class PanelBarra(NSPanel):
 
 class PanelTarjeta(NSPanel):
     def canBecomeKeyWindow(self):
-        return True  # para escribir en el buscador de copiados
+        return True  # so you can type in the clipboard search
 
     def canBecomeMainWindow(self):
         return False
@@ -199,7 +199,7 @@ class PanelTarjeta(NSPanel):
 
 
 class Rastreador(NSObject):
-    """Recibe entradas/salidas/movimiento del mouse aunque la app no esté activa."""
+    """Receives mouse enter/exit/move events even when the app isn't active."""
 
     def initCon_(self, fn):
         self = objc.super(Rastreador, self).init()
@@ -256,16 +256,16 @@ def animar(ventana, rect, dur=0.32, despues=None, alfa=None):
         if alfa is not None:
             ventana.animator().setAlphaValue_(alfa)
 
-    def fin():  # el bloque de AppKit espera void: nunca regresar lo que regrese `despues`
+    def fin():  # AppKit's block expects void: never return whatever `despues` returns
         if despues:
             despues()
 
     NSAnimationContext.runAnimationGroup_completionHandler_(g, fin)
 
 
-# ---------------------------------------------------------------- atajo global (Carbon, sin permisos)
+# ---------------------------------------------------------------- global hotkey (Carbon, no permissions)
 class Atajo:
-    """Atajo global (Carbon). Con varios atajos, cada uno revisa su id y deja pasar los ajenos."""
+    """Global hotkey (Carbon). With several hotkeys, each one checks its id and lets the others through."""
 
     def __init__(self, codigo, mods, fn, ident=1):
         c = ctypes.CDLL("/System/Library/Frameworks/Carbon.framework/Carbon")
@@ -291,11 +291,11 @@ class Atajo:
             c.GetEventParameter(evento, int.from_bytes(b"----", "big"), int.from_bytes(b"hkid", "big"), None,
                                 ctypes.sizeof(hk), None, ctypes.byref(hk))
             if hk.id != ident:
-                return -9874  # eventNotHandledErr: que lo atienda el otro atajo
+                return -9874  # eventNotHandledErr: let the other hotkey handle it
             try:
                 fn()
             except Exception as e:  # noqa: BLE001
-                print("atajo:", e)
+                print("hotkey:", e)
             return 0
 
         self._h = Handler(manejar)
@@ -307,23 +307,23 @@ class Atajo:
                                     ctypes.byref(self._ref))
         self.ok = err == 0
         if not self.ok:
-            print("No se pudo registrar el atajo", ident, "error", err)
+            print("Could not register hotkey", ident, "error", err)
 
 
 CMD, OPT, CTRL = 0x100, 0x800, 0x1000
 TECLA_A = 0
-TECLA_Q = 12  # ⌃⌥⌘Q: la barrita del lado izquierdo
+TECLA_Q = 12  # ⌃⌥⌘Q: the bar on the left edge
 
 
-# ---------------------------------------------------------------- lo que piden las vistas
+# ---------------------------------------------------------------- what the views ask for
 class Api:
     def __init__(self, app):
         self._app = app
         self._cop = app.copiados
 
-    # barrita
+    # bar
     def iconos(self, lista):
-        self._app.iconos = lista  # [{tipo, top, alto}] en px desde arriba de la barrita
+        self._app.iconos = lista  # [{tipo, top, alto}] in px from the top of the bar
         return True
 
     def alto_barra(self, h):
@@ -337,7 +337,7 @@ class Api:
     def estado(self):
         return self._app.resumen()
 
-    # tarjeta
+    # card
     def alto_tarjeta(self, h):
         self._app.altoTarjeta(float(h))
         return True
@@ -347,7 +347,7 @@ class Api:
         return True
 
     def fijar(self):
-        """Le picaste o le diste scroll a la tarjeta: ya no se cierra al quitar el mouse."""
+        """You clicked or scrolled the card: it no longer closes when the mouse leaves."""
         a = self._app
         if a.tarjeta_tipo and not a.fija:
             a.fija = True
@@ -416,7 +416,7 @@ class Api:
             return {"ok": False, "error": str(e)[:120]}
 
     def elegir_carpeta(self):
-        """Browse…: el selector de carpetas de macOS (también deja crear una nueva)."""
+        """Browse…: the macOS folder picker (it also lets you create a new one)."""
         self._app.eligiendo = True
         NSApp.activateIgnoringOtherApps_(True)
         p = NSOpenPanel.openPanel()
@@ -443,8 +443,8 @@ class Api:
         p = NSOpenPanel.openPanel()
         p.setAllowsMultipleSelection_(True)
         p.setCanChooseDirectories_(True)
-        p.setMessage_("Elige qué mandar por AirDrop")
-        p.setPrompt_("Mandar")
+        p.setMessage_("Choose what to send via AirDrop")
+        p.setPrompt_("Send")
         ok = p.runModal() == 1
         self._app.eligiendo = False
         if ok and p.URLs():
@@ -456,7 +456,7 @@ def grabadora_corriendo():
     return len(NSRunningApplication.runningApplicationsWithBundleIdentifier_("com.vareliuu.grabadora")) > 0
 
 
-# ---------------------------------------------------------------- la app
+# ---------------------------------------------------------------- the app
 class App(NSObject):
     def init(self):
         self = objc.super(App, self).init()
@@ -464,7 +464,7 @@ class App(NSObject):
         self.api = Api(self)
         self.iconos = []
         self.barra_visible = True
-        self.lado = "derecha"  # ⌃⌥⌘A derecha, ⌃⌥⌘Q izquierda
+        self.lado = "derecha"  # ⌃⌥⌘A right, ⌃⌥⌘Q left
         self.tarjeta_tipo = None
         self.tarjeta_alto = 300.0
         self.fija = False
@@ -476,7 +476,7 @@ class App(NSObject):
         self.ultimo_spotify = {"abierto": False}
         return self
 
-    # ---------- construcción ----------
+    # ---------- setup ----------
     @objc.python_method
     def crear(self):
         h = 400
@@ -484,7 +484,7 @@ class App(NSObject):
         T = h + 2 * FILETE
         b = panel_base(PanelBarra, BARRA_W, T)
         cont = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, BARRA_W, T))
-        # Vidrio de forma libre (barrita + bordecitos en una sola pieza): NSVisualEffectView con máscara.
+        # Free-form glass (bar + fillets in one piece): an NSVisualEffectView with a mask.
         self.vidrio_barra = NSVisualEffectView.alloc().initWithFrame_(NSMakeRect(0, 0, BARRA_W, T))
         self.vidrio_barra.setMaterial_(MATERIAL)
         self.vidrio_barra.setBlendingMode_(0)
@@ -494,7 +494,7 @@ class App(NSObject):
         self.borde_barra = CAShapeLayer.layer()
         self.borde_barra.setFillColor_(None)
         self.borde_barra.setStrokeColor_(NSColor.colorWithWhite_alpha_(1.0, 0.3).CGColor())
-        self.borde_barra.setLineWidth_(2.0)  # la mitad de afuera la recorta la máscara: queda 1 px por dentro
+        self.borde_barra.setLineWidth_(2.0)  # the mask clips the outer half: 1 px is left inside
         self.vidrio_barra.layer().addSublayer_(self.borde_barra)
         cont.addSubview_(self.vidrio_barra)
         self.vista_barra = nueva_vista(self.api, "barra.html", NSMakeRect(0, FILETE, BARRA_W, h))
@@ -510,7 +510,7 @@ class App(NSObject):
         t = panel_base(PanelTarjeta, tw, 300)
         cont = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, tw, 300))
         g = vidrio_oscuro(NSMakeRect(0, 0, TARJETA_W, 300), 22, tarjeta=True)
-        g.setAutoresizingMask_(16)  # alto flexible; el ancho fijo deja libre la franja del pico
+        g.setAutoresizingMask_(16)  # flexible height; the fixed width leaves the pointer strip free
         self.vidrio_tarjeta = g
         cont.addSubview_(g)
         self.vista_tarjeta = nueva_vista(self.api, "tarjeta.html", NSMakeRect(0, 0, tw, 300))
@@ -523,7 +523,7 @@ class App(NSObject):
         self.barra.setFrame_display_(self.marcoBarra(h), True)
         self.barra.orderFrontRegardless()
 
-        # Portapapeles cada medio segundo; Spotify, uso y conteos en un hilo cada segundo.
+        # Clipboard every half second; Spotify, usage and counts on a thread every second.
         self.copiados.revisar(NSPasteboard.generalPasteboard())
         NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.5, self, "tic:", None, True)
         threading.Thread(target=self.bucleEstado, daemon=True).start()
@@ -533,10 +533,10 @@ class App(NSObject):
             self, "pantallasCambiaron:", "NSApplicationDidChangeScreenParametersNotification", None)
         NSDistributedNotificationCenter.defaultCenter().addObserver_selector_name_object_(
             self, "estadoDictado:", "com.vareliuu.dictado.estado", None)
-        # Pedirle a Grabadora cómo va (por si ya estaba grabando).
+        # Ask Grabadora for its state (in case it's already recording).
         self.avisarDictado("estado")
 
-    # ---------- geometría ----------
+    # ---------- geometry ----------
     @objc.python_method
     def pantallaDeBarra(self):
         f = self.barra.frame()
@@ -553,7 +553,7 @@ class App(NSObject):
 
     @objc.python_method
     def marcoBarra(self, h=None, escondida=False):
-        h = (h or self.alto_riel) + 2 * FILETE  # la ventana incluye los bordecitos
+        h = (h or self.alto_riel) + 2 * FILETE  # the window includes the fillets
         f, v = self.pantalla().frame(), self.pantalla().visibleFrame()
         base = v.origin.y + v.size.height * ABAJO_LIBRE
         y = base + (v.origin.y + v.size.height - base - h) / 2
@@ -567,7 +567,7 @@ class App(NSObject):
         self.cerrarTarjeta()
         self.barra.setFrame_display_(self.marcoBarra(None, not self.barra_visible), True)
 
-    # ---------- barrita ----------
+    # ---------- bar ----------
     @objc.python_method
     def altoBarra(self, h):
         if abs(h - self.alto_riel) >= 1:
@@ -577,7 +577,7 @@ class App(NSObject):
 
     @objc.python_method
     def formaBarra(self, h):
-        """Silueta de la opción A: orilla → curva hacia adentro → esquina → bajada → esquina → curva → orilla."""
+        """Option A silhouette: edge → inward curve → corner → straight down → corner → curve → edge."""
         self.alto_riel = h
         W, F, R, T = float(BARRA_W), float(FILETE), float(RADIO), float(h + 2 * FILETE)
         self.vidrio_barra.setFrame_(NSMakeRect(0, 0, W, T))
@@ -595,7 +595,7 @@ class App(NSObject):
             bp.appendBezierPathWithArcWithCenter_radius_startAngle_endAngle_clockwise_((W - F, 0), F, 90, 0, True)
             if cerrado:
                 bp.closePath()
-            if self.lado == "izquierda":  # espejo: x → W - x
+            if self.lado == "izquierda":  # mirror: x → W - x
                 t = NSAffineTransform.transform()
                 t.translateXBy_yBy_(W, 0)
                 t.scaleXBy_yBy_(-1, 1)
@@ -646,7 +646,7 @@ class App(NSObject):
 
     @objc.python_method
     def clicIcono(self, tipo):
-        if tipo == "dictado":  # lo maneja Grabadora: aquí solo le decimos dónde ponerse
+        if tipo == "dictado":  # Grabadora handles it: here we only tell it where to sit
             self.cerrarTarjeta()
             self.avisarDictado("alternar")
             return
@@ -660,7 +660,7 @@ class App(NSObject):
     @objc.python_method
     def alternarBarra(self, lado="derecha"):
         if self.barra_visible and lado != self.lado:
-            # Abierta del otro lado: se esconde allá y sale de este.
+            # Open on the other edge: hide it there and bring it in on this one.
             self.cerrarTarjeta()
             self.avisarDictado("cerrar")
             self.barra_visible = False
@@ -689,18 +689,18 @@ class App(NSObject):
 
     @objc.python_method
     def aplicarLado(self):
-        """Dibuja todo en espejo según la orilla: silueta de la barrita, vidrio y pico de la tarjeta."""
+        """Mirrors everything for the current edge: the bar's silhouette, the card's glass and pointer."""
         izq = self.lado == "izquierda"
         self.formaBarra(self.alto_riel)
         f = self.vidrio_tarjeta.frame()
         self.vidrio_tarjeta.setFrame_(NSMakeRect(PICO if izq else 0, f.origin.y, TARJETA_W, f.size.height))
         self.js(self.vista_tarjeta, f"document.body.classList.toggle('izq', {'true' if izq else 'false'})")
 
-    # ---------- dictado (vive en Grabadora.app; se hablan con avisos de macOS) ----------
+    # ---------- dictation (lives in Grabadora.app; the two talk through macOS distributed notifications) ----------
     @objc.python_method
     def avisarDictado(self, accion, reintento=False):
         if accion in ("hover", "alternar") and not reintento and not grabadora_corriendo():
-            # Si Grabadora se cerró (⌘Q), la abrimos sin ventana y repetimos el aviso cuando ya escuche.
+            # If Grabadora was quit (⌘Q), open it without a window and resend the notification once it's listening.
             subprocess.Popen(["open", "-g", "-a", "/Applications/Grabadora.app", "--args", "--fondo"])
             AppHelper.callLater(3.0, self.avisarDictado, accion, True)
             return
@@ -719,7 +719,7 @@ class App(NSObject):
         dato = {"grabando": bool(d.get("grabando")), "inicio": float(d.get("inicio") or 0)}
         self.js(self.vista_barra, f"window.dictado && window.dictado({json.dumps(dato)})")
 
-    # ---------- tarjeta ----------
+    # ---------- card ----------
     @objc.python_method
     def centroIcono(self, tipo):
         bf = self.barra.frame()
@@ -730,7 +730,7 @@ class App(NSObject):
 
     @objc.python_method
     def marcoTarjeta(self, tipo, h):
-        v = self.pantallaDeBarra().visibleFrame()  # la de la barrita, no la «activa» (Bruno usa dos monitores)
+        v = self.pantallaDeBarra().visibleFrame()  # the bar's screen, not the "active" one (Bruno uses two monitors)
         cy = self.centroIcono(tipo)
         h = min(h, v.size.height - 16)
         y = max(v.origin.y + 8, min(cy - h / 2, v.origin.y + v.size.height - 8 - h))
@@ -739,13 +739,13 @@ class App(NSObject):
             x = bf.origin.x + bf.size.width + HUECO
         else:
             x = bf.origin.x - HUECO - TARJETA_W - PICO
-        flecha = (y + h) - cy  # px desde arriba de la tarjeta
+        flecha = (y + h) - cy  # px from the top of the card
         return NSMakeRect(x, y, TARJETA_W + PICO, h), flecha
 
     @objc.python_method
     def mostrarTarjeta(self, tipo):
         self.cierre_id += 1
-        self.avisarDictado("salir")  # que la tarjeta del dictado no se encime (si no está fijada)
+        self.avisarDictado("salir")  # keep the dictation card from overlapping (unless it's pinned)
         abierta = self.tarjeta_tipo is not None and self.tarjeta.isVisible()
         if abierta and self.tarjeta_tipo == tipo:
             return
@@ -808,7 +808,7 @@ class App(NSObject):
         if self.fija and not self.eligiendo:
             self.cerrarTarjeta()
 
-    # ---------- estado para la barrita ----------
+    # ---------- state for the bar ----------
     @objc.python_method
     def resumen(self):
         lt = time.localtime()
@@ -836,7 +836,7 @@ class App(NSObject):
                 if n % 5 == 0 or self.ultimo_spotify.get("estado") == "playing":
                     self.empujarEstado()
             except Exception as e:  # noqa: BLE001
-                print("estado:", e)
+                print("state:", e)
             n += 1
             time.sleep(1.0)
 
@@ -847,7 +847,7 @@ class App(NSObject):
                 if self.tarjeta_tipo == "copiados":
                     self.js(self.vista_tarjeta, "window.recargar && window.recargar()")
         except Exception as e:  # noqa: BLE001
-            print("portapapeles:", e)
+            print("clipboard:", e)
 
     @objc.python_method
     def js(self, vista, codigo):
@@ -857,13 +857,13 @@ class App(NSObject):
 def main():
     NSBundle.mainBundle().infoDictionary()["CFBundleName"] = "Atajos"
     app = NSApplication.sharedApplication()
-    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)  # sin Dock
+    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)  # no Dock icon
 
-    menu = NSMenu.alloc().init()  # Edición: para ⌘C/⌘V/⌘A en el buscador
+    menu = NSMenu.alloc().init()  # Edit menu: for ⌘C/⌘V/⌘A in the search field
     raiz = NSMenuItem.alloc().init()
-    m = NSMenu.alloc().initWithTitle_("Edición")
-    for t, a, k in [("Cortar", "cut:", "x"), ("Copiar", "copy:", "c"), ("Pegar", "paste:", "v"),
-                    ("Seleccionar todo", "selectAll:", "a"), ("Deshacer", "undo:", "z")]:
+    m = NSMenu.alloc().initWithTitle_("Edit")
+    for t, a, k in [("Cut", "cut:", "x"), ("Copy", "copy:", "c"), ("Paste", "paste:", "v"),
+                    ("Select All", "selectAll:", "a"), ("Undo", "undo:", "z")]:
         m.addItem_(NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(t, a, k))
     raiz.setSubmenu_(m)
     menu.addItem_(raiz)
@@ -874,10 +874,10 @@ def main():
     d.crear()
     d.atajo = Atajo(TECLA_A, CTRL | OPT | CMD, lambda: d.alternarBarra("derecha"), 1)
     d.atajo_izq = Atajo(TECLA_Q, CTRL | OPT | CMD, lambda: d.alternarBarra("izquierda"), 2)
-    if "--izquierda" in sys.argv:  # para revisar: como si presionaras ⌃⌥⌘Q
+    if "--izquierda" in sys.argv:  # for testing: as if you pressed ⌃⌥⌘Q
         AppHelper.callLater(1.2, d.alternarBarra, "izquierda")
     for arg in sys.argv:
-        if arg.startswith("--tarjeta="):  # para revisar: abre esa tarjeta fijada
+        if arg.startswith("--tarjeta="):  # for testing: opens that card, pinned
             AppHelper.callLater(2.5, d.clicIcono, arg.split("=", 1)[1])
     AppHelper.runEventLoop()
 

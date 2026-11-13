@@ -51,8 +51,8 @@ Necesitas macOS 13 o más nuevo en Apple Silicon, y Python 3.10+. Se recomienda 
 ```bash
 git clone https://github.com/brunovareliuu/atajos.git
 cd atajos
-./atajos/instalar.sh      # arma /Applications/Atajos.app
-./grabadora/instalar.sh   # arma /Applications/Grabadora.app
+./atajos/install.sh      # arma /Applications/Atajos.app
+./grabadora/install.sh   # arma /Applications/Grabadora.app
 open -a Atajos; open -a Grabadora --args --fondo
 ```
 

@@ -1,4 +1,4 @@
-"""Motor de Grabadora: micrófono, Whisper (MLX) e historial. Sin nada de interfaz."""
+"""Grabadora's engine: microphone, Whisper (MLX) and history. No UI at all."""
 
 import json
 import os
@@ -15,9 +15,9 @@ from pathlib import Path
 import numpy as np
 import sounddevice as sd
 
-# Abierta desde Finder la app no trae el PATH de la terminal; ffmpeg vive en Homebrew.
+# Opened from Finder the app doesn't get the shell's PATH; ffmpeg lives in Homebrew.
 os.environ["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", "")
-# Si el modelo ya está descargado, que no pregunte a internet al abrir. La primera vez sí lo baja (~1.6 GB).
+# If the model is already downloaded, don't hit the internet on launch. The first time it does download it (~1.6 GB).
 if (Path.home() / ".cache/huggingface/hub/models--mlx-community--whisper-large-v3-turbo/snapshots").exists():
     os.environ.setdefault("HF_HUB_OFFLINE", "1")
 
@@ -65,8 +65,8 @@ def cargar_indice():
 class Api:
     def __init__(self):
         CARPETA.mkdir(parents=True, exist_ok=True)
-        self._emisor = None      # fn(nombre, dato): lo pone la app para avisar a las vistas
-        self._app = None         # la app nativa (panel, ventana, diálogos)
+        self._emisor = None      # fn(name, data): set by the app to notify the views
+        self._app = None         # the native app (panel, window, dialogs)
         self._items = cargar_indice()
         self._lock = threading.Lock()
         self._modelo_listo = False
@@ -76,17 +76,17 @@ class Api:
         self._nivel_actual = 0.0
         self._reproductor = None
         self._cola = queue.Queue()
-        # Transcripción en vivo mientras se graba.
+        # Live transcription while recording.
         self._sesion = 0
         self._idioma_vivo = ""
-        self._corte = 0          # muestra donde empieza lo que aún no se fija
-        self._fijo = ""          # texto ya fijado (pedazos cerrados en una pausa)
-        self._tentativo = ""     # lo último, que todavía puede cambiar
+        self._corte = 0          # sample where the not-yet-committed audio starts
+        self._fijo = ""          # text already committed (chunks closed at a pause)
+        self._tentativo = ""     # the latest bit, which can still change
         self._ultimo_vivo = 0.0
-        # Todo lo de MLX corre en un solo hilo: MLX no se lleva bien con varios.
+        # All MLX work runs on a single thread: MLX doesn't get along with several.
         threading.Thread(target=self._trabajador, daemon=True).start()
 
-    # ---------- utilidades internas ----------
+    # ---------- internal helpers ----------
     def _guardar(self):
         with self._lock:
             tmp = INDICE.with_suffix(".tmp")
@@ -101,7 +101,7 @@ class Api:
             try:
                 self._emisor(fn, dato)
             except Exception as e:  # noqa: BLE001
-                print("avisar:", e)
+                print("notify:", e)
 
     def _trabajador(self):
         import mlx_whisper
@@ -109,7 +109,7 @@ class Api:
         try:
             mlx_whisper.transcribe(np.zeros(TASA, dtype=np.float32), path_or_hf_repo=MODELO, language="es")
         except Exception as e:  # noqa: BLE001
-            print("No se pudo precargar el modelo:", e)
+            print("Could not preload the model:", e)
         self._modelo_listo = True
         self._avisar("modeloListo", True)
 
@@ -118,7 +118,7 @@ class Api:
                 try:
                     self._paso_vivo(mlx_whisper)
                 except Exception as e:  # noqa: BLE001
-                    print("vivo:", e)
+                    print("live:", e)
                 self._ultimo_vivo = time.time()
             try:
                 id_ = self._cola.get(timeout=0.1)
@@ -159,9 +159,9 @@ class Api:
         rms = lambda x: float(np.sqrt(np.mean(x ** 2))) if len(x) else 0.0  # noqa: E731
         general, cola = rms(pend), rms(pend[-int(TASA * 0.5):])
         pausa = cola < 0.012 and cola < general * 0.5
-        # Se fija el pedazo al hacer una pausa, o si ya va muy largo.
+        # Commit the chunk at a pause, or once it gets too long.
         fijar = (len(pend) > TASA * 3 and pausa) or len(pend) > TASA * 15
-        if general < 0.004:  # puro silencio: Whisper inventa frases con eso
+        if general < 0.004:  # pure silence: Whisper makes up phrases from it
             texto = ""
         else:
             r = mlx_whisper.transcribe(
@@ -202,7 +202,7 @@ class Api:
         self._cola.put(item["id"])
         return item
 
-    # ---------- lo que llama la interfaz ----------
+    # ---------- what the UI calls ----------
     def estado(self):
         return {"modelo_listo": self._modelo_listo, "carpeta": str(CARPETA)}
 
@@ -227,7 +227,7 @@ class Api:
             self._stream.start()
         except Exception as e:  # noqa: BLE001
             self._stream = None
-            return {"ok": False, "error": f"No pude abrir el micrófono: {e}"}
+            return {"ok": False, "error": f"Couldn't open the microphone: {e}"}
         self._inicio = time.time()
         self._avisar("grabacion", True)
         return {"ok": True}
@@ -363,7 +363,7 @@ class Api:
     def grabando(self):
         return self._stream is not None
 
-    # ---------- lo que pide la interfaz a la app nativa ----------
+    # ---------- what the UI asks of the native app ----------
     def cerrar_panel(self):
         self._app and self._app.cerrar_panel()
         return True

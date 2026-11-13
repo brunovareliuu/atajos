@@ -1,14 +1,14 @@
 #!/bin/bash
-# Arma Grabadora.app, la instala en /Applications y la deja abriendo sola (en segundo plano) al iniciar sesión,
-# para que ⌃⌥⌘G funcione siempre. Tras cambiar el código no hace falta correrlo: la app lee app.py y ui/ de aquí.
+# Builds Grabadora.app, installs it in /Applications and sets it to open at login (in the background)
+# so ⌃⌥⌘G always works. No need to rerun it after changing the code: the app reads app.py and ui/ from here.
 set -euo pipefail
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 APP="/Applications/Grabadora.app"
 TMP="$(mktemp -d)"
 
-# Entorno de Python (la primera vez): con uv si está, si no con venv. Necesita Python 3.10+.
+# Python environment (first run): with uv if available, otherwise venv. Needs Python 3.10+.
 if [ ! -x "$AQUI/.venv/bin/python" ]; then
-  echo "Creando el entorno de Python…"
+  echo "Creating the Python environment…"
   if command -v uv >/dev/null 2>&1; then
     uv venv -q --python 3.12 "$AQUI/.venv"
     uv pip install -q --python "$AQUI/.venv/bin/python" -r "$AQUI/requirements.txt"
@@ -18,7 +18,7 @@ if [ ! -x "$AQUI/.venv/bin/python" ]; then
   fi
 fi
 
-# Ícono: círculo naranja con micrófono blanco sobre negro.
+# Icon: an orange circle with a white microphone on black.
 "$AQUI/.venv/bin/python" - "$TMP" <<'PY'
 import sys
 from PIL import Image, ImageDraw, ImageFilter
@@ -72,7 +72,7 @@ cat > "$APP/Contents/Info.plist" <<PL
   <key>CFBundleIconFile</key><string>icono</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
-  <key>NSMicrophoneUsageDescription</key><string>Grabadora usa el micrófono para grabar tus notas de voz y transcribirlas en tu Mac.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Grabadora uses the microphone to record your voice notes and transcribe them on your Mac.</string>
 </dict></plist>
 PL
 
@@ -80,7 +80,7 @@ codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
 touch "$APP"
 rm -rf "$TMP"
 
-# Abrir al iniciar sesión, sin ventana.
+# Open at login, without a window.
 AGENTE="$HOME/Library/LaunchAgents/com.vareliuu.grabadora.plist"
 cat > "$AGENTE" <<AG
 <?xml version="1.0" encoding="UTF-8"?>
@@ -94,4 +94,4 @@ cat > "$AGENTE" <<AG
   <key>RunAtLoad</key><true/>
 </dict></plist>
 AG
-echo "Instalada en $APP"
+echo "Installed at $APP"

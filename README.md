@@ -51,8 +51,8 @@ You need macOS 13 or later on Apple Silicon, and Python 3.10+. [uv](https://docs
 ```bash
 git clone https://github.com/brunovareliuu/atajos.git
 cd atajos
-./atajos/instalar.sh      # builds /Applications/Atajos.app
-./grabadora/instalar.sh   # builds /Applications/Grabadora.app
+./atajos/install.sh      # builds /Applications/Atajos.app
+./grabadora/install.sh   # builds /Applications/Grabadora.app
 open -a Atajos; open -a Grabadora --args --fondo
 ```
 

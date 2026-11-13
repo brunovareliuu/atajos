@@ -1,4 +1,4 @@
-/* Tokens al estilo de los colores de sistema de Apple; claro y oscuro según la Mac. */
+/* Tokens modeled on Apple's system colors; light or dark following the Mac. */
 :root {
   color-scheme: light dark;
   --label: rgba(0, 0, 0, .88);
@@ -31,7 +31,7 @@
     --wave-off: rgba(235, 235, 245, .14);
   }
 }
-/* Píldora y tarjeta: siempre oscuras (vidrio oscuro), sin importar el modo de la Mac. */
+/* Pill and card: always dark (dark glass), whatever the Mac's appearance. */
 html.oscuro {
   color-scheme: dark;
   --label: rgba(255, 255, 255, .94);
@@ -61,7 +61,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: def
 ::selection { background: var(--accent-soft); }
 ::-webkit-scrollbar { width: 0; }
 
-/* botón cápsula estilo macOS 26 */
+/* macOS 26 style capsule button */
 .cap {
   height: 30px; padding: 0 13px; border-radius: 99px; background: var(--fill);
   display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
@@ -75,13 +75,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: def
 .cap svg { flex-shrink: 0; }
 kbd { font: 500 11px system-ui; color: var(--label2); background: var(--fill); border-radius: 5px; padding: 1px 5px; }
 
-/* control segmentado */
+/* segmented control */
 .seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--fill); }
 .seg button { padding: 3px 12px; border-radius: 7px; font-size: 12px; font-weight: 500; color: var(--label2); transition: all .15s; }
 .seg button.on { background: var(--surface-on, rgba(255,255,255,.9)); color: var(--label); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.04); }
 @media (prefers-color-scheme: dark) { .seg button.on { background: rgba(255,255,255,.2); box-shadow: none; } }
 
-/* barras de espera */
+/* loading bars */
 .barras { display: inline-flex; gap: 2px; height: 12px; align-items: center; }
 .barras i { width: 2px; border-radius: 1px; background: currentColor; animation: sube 1s ease-in-out infinite; }
 .barras i:nth-child(2) { animation-delay: .12s } .barras i:nth-child(3) { animation-delay: .24s } .barras i:nth-child(4) { animation-delay: .36s }

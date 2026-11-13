@@ -1,7 +1,7 @@
-"""Grabadora: app nativa de Mac (AppKit + Liquid Glass) con el motor de Whisper en motor.py.
+"""Grabadora: native Mac app (AppKit + Liquid Glass) with the Whisper engine in motor.py.
 
-- Ventana principal: historial, grabar, subir audio.
-- Panel de vidrio a la derecha con ⌃⌥⌘G desde cualquier app: graba, va escribiendo y copias.
+- Main window: history, recording, audio upload.
+- Glass panel on the right with ⌃⌥⌘G from any app: it records, types as you talk, and you copy.
 """
 
 import ctypes
@@ -41,14 +41,14 @@ import motor
 AQUI = Path(__file__).resolve().parent
 UI = AQUI / "ui"
 
-# ---------- estilos de ventana ----------
+# ---------- window styles ----------
 TITLED, CLOSABLE, MINI, RESIZABLE = 1 << 0, 1 << 1, 1 << 2, 1 << 3
 FULL_CONTENT = 1 << 15
 NONACTIVATING = 1 << 7
 BORDERLESS = 0
 ALL_SPACES, FULLSCREEN_AUX = 1 << 0, 1 << 8
 FLOATING_LEVEL = 3
-SIZE_ALL = 2 | 16  # ancho y alto flexibles
+SIZE_ALL = 2 | 16  # flexible width and height
 
 try:
     GlassView = objc.lookUpClass("NSGlassEffectView")
@@ -57,7 +57,7 @@ except objc.error:
 
 
 def vidrio(frame, radio, estilo=0):
-    """Liquid Glass de macOS 26; en sistemas viejos, el desenfoque clásico."""
+    """macOS 26 Liquid Glass; on older systems, the classic blur."""
     if GlassView is not None:
         v = GlassView.alloc().initWithFrame_(frame)
         v.setCornerRadius_(radio)
@@ -73,7 +73,7 @@ def vidrio(frame, radio, estilo=0):
     return v
 
 
-# ---------- puente JS ⇄ Python ----------
+# ---------- JS ⇄ Python bridge ----------
 PUENTE_JS = """
 (() => {
   let n = 0; const pend = {};
@@ -103,7 +103,7 @@ class Puente(NSObject, protocols=[objc.protocolNamed("WKScriptMessageHandler")])
         def correr():
             try:
                 if metodo.startswith("_") or not hasattr(self.api, metodo):
-                    raise AttributeError(f"no existe {metodo}")
+                    raise AttributeError(f"no such method: {metodo}")
                 res, ok = getattr(self.api, metodo)(*args), True
             except Exception as e:  # noqa: BLE001
                 res, ok = str(e), False
@@ -123,14 +123,14 @@ def nueva_vista(api, html, frame):
     ctrl.addUserScript_(WKUserScript.alloc().initWithSource_injectionTime_forMainFrameOnly_(PUENTE_JS, 0, True))
     conf.setUserContentController_(ctrl)
     wv = WKWebView.alloc().initWithFrame_configuration_(frame, conf)
-    wv.setValue_forKey_(False, "drawsBackground")  # transparente: se ve el vidrio
+    wv.setValue_forKey_(False, "drawsBackground")  # transparent: the glass shows through
     wv.setAutoresizingMask_(SIZE_ALL)
     url = NSURL.fileURLWithPath_(str(UI / html))
     wv.loadFileURL_allowingReadAccessToURL_(url, NSURL.fileURLWithPath_(str(UI)))
     return wv
 
 
-# ---------- panel flotante ----------
+# ---------- floating panel ----------
 class PanelVidrio(NSPanel):
     def canBecomeKeyWindow(self):
         return True
@@ -149,13 +149,13 @@ def flotante(p):
 
 
 class Zona(NSView):
-    """Avisa cuando el mouse entra/sale (aunque la app esté en segundo plano). Con al_clic, también recibe clics;
-    sin él, deja pasar los clics a lo que tiene abajo."""
+    """Reports when the mouse enters/exits (even with the app in the background). With al_clic it also takes clicks;
+    without it, clicks pass through to whatever is underneath."""
 
     def updateTrackingAreas(self):
         for t in list(self.trackingAreas()):
             self.removeTrackingArea_(t)
-        opciones = 0x01 | 0x80 | 0x200  # entra/sale, siempre activo, rect visible
+        opciones = 0x01 | 0x80 | 0x200  # entered/exited, always active, visible rect
         self.addTrackingArea_(NSTrackingArea.alloc().initWithRect_options_owner_userInfo_(self.bounds(), opciones, self, None))
         objc.super(Zona, self).updateTrackingAreas()
 
@@ -170,7 +170,7 @@ class Zona(NSView):
     def hitTest_(self, punto):
         v = objc.super(Zona, self).hitTest_(punto)
         if v is self and not getattr(self, "al_clic", None):
-            return None  # sin clic propio: que lo reciba lo de abajo
+            return None  # no click handler of its own: let whatever is underneath get it
         return v
 
     def mouseDown_(self, ev):
@@ -182,14 +182,14 @@ class Zona(NSView):
 
 
 def vidrio_oscuro(frame, radio, estilo=1, alfa=0.04):
-    """Por defecto «clear» casi sin tinte (la barrita); la tarjeta usa regular + más tinte para leerse mejor."""
+    """Defaults to "clear" with almost no tint (the bar); the card uses regular + more tint so it reads better."""
     v = vidrio(frame, radio, estilo=estilo)
     if GlassView is not None:
         v.setTintColor_(NSColor.colorWithSRGBRed_green_blue_alpha_(0.0, 0.0, 0.0, alfa))
     return v
 
 
-# ---------- atajo global (Carbon, no pide permisos de accesibilidad) ----------
+# ---------- global hotkey (Carbon, no Accessibility permission needed) ----------
 class Atajo:
     def __init__(self, codigo, modificadores, fn):
         self.fn = fn
@@ -212,10 +212,10 @@ class Atajo:
             try:
                 self.fn()
             except Exception as e:  # noqa: BLE001
-                print("atajo:", e)
+                print("hotkey:", e)
             return 0
 
-        self._handler = Handler(manejar)  # que no se lo lleve el recolector
+        self._handler = Handler(manejar)  # keep it from being garbage-collected
         objetivo = c.GetApplicationEventTarget()
         tipo = TypeSpec(int.from_bytes(b"keyb", "big"), 5)  # kEventHotKeyPressed
         c.InstallEventHandler(objetivo, self._handler, 1, ctypes.byref(tipo), None, None)
@@ -224,14 +224,14 @@ class Atajo:
                                     objetivo, 0, ctypes.byref(self._ref))
         self.ok = err == 0
         if not self.ok:
-            print("No se pudo registrar el atajo, error", err)
+            print("Could not register hotkey, error", err)
 
 
 CMD, OPT, CTRL = 0x100, 0x800, 0x1000
 TECLA_G = 5
 
 
-# ---------- la app ----------
+# ---------- the app ----------
 class App(NSObject):
     def initConApi_(self, api):
         self = objc.super(App, self).init()
@@ -239,7 +239,7 @@ class App(NSObject):
         self.vistas = []
         return self
 
-    # ventana principal
+    # main window
     @objc.python_method
     def crearVentana(self):
         pant = NSScreen.mainScreen().visibleFrame()
@@ -255,22 +255,22 @@ class App(NSObject):
         win.setReleasedWhenClosed_(False)
         win.setDelegate_(self)
         win.setFrameAutosaveName_("GrabadoraVentana")
-        # Barra de título alta (como Finder en macOS 26): los semáforos caen dentro de la barra lateral.
+        # Tall title bar (like Finder on macOS 26): the traffic lights sit inside the sidebar.
         barra = NSToolbar.alloc().initWithIdentifier_("grabadora")
         barra.setShowsBaselineSeparator_(False)
         win.setToolbar_(barra)
         win.setToolbarStyle_(3)  # unified
-        win.setTitlebarSeparatorStyle_(1)  # sin línea
+        win.setTitlebarSeparatorStyle_(1)  # no line
 
         fondo = NSVisualEffectView.alloc().initWithFrame_(NSMakeRect(0, 0, w, h))
-        fondo.setMaterial_(13)  # hudWindow: el más translúcido
-        fondo.setBlendingMode_(0)  # detrás de la ventana: se transparenta el escritorio
+        fondo.setMaterial_(13)  # hudWindow: the most translucent
+        fondo.setBlendingMode_(0)  # behind the window: the desktop shows through
         fondo.setState_(1)
         win.setContentView_(fondo)
 
-        # Barra lateral de Liquid Glass flotando adentro, como en macOS 26.
+        # Liquid Glass sidebar floating inside, as in macOS 26.
         lateral = vidrio(NSMakeRect(8, 8, 268, h - 16), 18)
-        lateral.setAutoresizingMask_(16)  # alto flexible
+        lateral.setAutoresizingMask_(16)  # flexible height
         fondo.addSubview_(lateral)
 
         wv = nueva_vista(self.api, "ventana.html", NSMakeRect(0, 0, w, h))
@@ -286,14 +286,14 @@ class App(NSObject):
             self.js(self.vistas[0], f"window.abrirNota && window.abrirNota({json.dumps(id_)})")
 
     def windowShouldClose_(self, win):
-        win.orderOut_(None)  # cerrar = esconder; el atajo sigue vivo
+        win.orderOut_(None)  # close = hide; the hotkey stays alive
         return False
 
-    # ---------- píldora del micrófono + tarjeta del dictado ----------
-    # Como la referencia de Bruno: una píldora de vidrio oscuro en la orilla con un anillo; al pasar el mouse
-    # (o con ⌃⌥⌘G, o clic) sale a un lado una tarjeta con el texto en vivo.
-    BW, BH = 58, 80          # píldora
-    CW, CH = 384, 470        # tarjeta
+    # ---------- mic pill + dictation card ----------
+    # Like Bruno's reference: a dark-glass pill on the screen edge with a ring; on hover
+    # (or with ⌃⌥⌘G, or a click) a card with the live text slides out beside it.
+    BW, BH = 58, 80          # pill
+    CW, CH = 384, 470        # card
     MARGEN, HUECO = 8, 12
 
     @objc.python_method
@@ -302,15 +302,15 @@ class App(NSObject):
         self.abierto = False
         self.fijado = False
         self.sobre = {"burbuja": False, "tarjeta": False}
-        self.ancla = None  # (x de la orilla derecha de la tarjeta, y del centro) que manda Atajos
+        self.ancla = None  # (x of the card's right edge, y of its center) sent by Atajos
         self.burbuja = None
-        self.CW, self.CH = 330, 60  # arranca como barrita; panel.html pide otro tamaño al terminar
+        self.CW, self.CH = 330, 60  # starts as a bar; panel.html asks for another size when done
 
-        # tarjeta
+        # card
         p = PanelVidrio.alloc().initWithContentRect_styleMask_backing_defer_(
             NSMakeRect(0, 0, self.CW, self.CH), BORDERLESS | NONACTIVATING, NSBackingStoreBuffered, False)
         flotante(p)
-        p.setHasShadow_(False)  # la sombra de la ventana dibujaba un marco rectangular; el vidrio trae la suya
+        p.setHasShadow_(False)  # the window shadow drew a rectangular frame; the glass brings its own
         cont = Zona.alloc().initWithFrame_(NSMakeRect(0, 0, self.CW, self.CH))
         cont.al_entrar = lambda: self.hover("tarjeta", True)
         cont.al_salir = lambda: self.hover("tarjeta", False)
@@ -325,7 +325,7 @@ class App(NSObject):
         wv.setWantsLayer_(True)
         self.redondear(self.CH)
 
-        # Píldora propia en la orilla: apagada desde que el dictado vive en la barrita de Atajos (⌃⌥⌘A).
+        # Own pill on the screen edge: off since dictation moved into the Atajos bar (⌃⌥⌘A).
         if motor.ajuste("pildora", False):
             self.crearBurbuja()
         self.acomodar()
@@ -362,7 +362,7 @@ class App(NSObject):
     @objc.python_method
     def rects(self):
         f, v = self.pantalla().frame(), self.pantalla().visibleFrame()
-        if self.ancla:  # junto al ícono de Dictado de la barrita de Atajos, en la pantalla de la barrita
+        if self.ancla:  # next to the Dictation icon in the Atajos bar, on the bar's screen
             x, yc = self.ancla
             for sc in NSScreen.screens():
                 r = sc.frame()
@@ -371,7 +371,7 @@ class App(NSObject):
                     break
             ch = min(self.CH, v.size.height - 16)
             cy = max(v.origin.y + 8, min(yc - ch / 2, v.origin.y + v.size.height - 8 - ch))
-            if getattr(self, "ancla_lado", "derecha") == "izquierda":  # barrita en la orilla izquierda (⌃⌥⌘Q)
+            if getattr(self, "ancla_lado", "derecha") == "izquierda":  # bar on the left edge (⌃⌥⌘Q)
                 return None, NSMakeRect(x, cy, self.CW, ch), NSMakeRect(x - 16, cy, self.CW, ch)
             cx = x - self.CW
             return None, NSMakeRect(cx, cy, self.CW, ch), NSMakeRect(cx + 16, cy, self.CW, ch)
@@ -387,7 +387,7 @@ class App(NSObject):
             fuera = -16
         burbuja = NSMakeRect(bx, by, self.BW, self.BH)
         tarjeta = NSMakeRect(cx, by, self.CW, ch)
-        escondida = NSMakeRect(cx + fuera, by, self.CW, ch)  # se asoma desde la píldora
+        escondida = NSMakeRect(cx + fuera, by, self.CW, ch)  # peeks out from the pill
         return burbuja, tarjeta, escondida
 
     @objc.python_method
@@ -406,8 +406,8 @@ class App(NSObject):
             if alfa is not None:
                 ventana.animator().setAlphaValue_(alfa)
 
-        def fin():  # AppKit espera void
-            ventana.invalidateShadow()  # la sombra sigue la forma nueva (si no, quedan esquinas rectas)
+        def fin():  # AppKit expects void
+            ventana.invalidateShadow()  # the shadow follows the new shape (otherwise square corners remain)
             if despues:
                 despues()
         NSAnimationContext.runAnimationGroup_completionHandler_(grupo, fin)
@@ -428,7 +428,7 @@ class App(NSObject):
 
     @objc.python_method
     def redondear(self, h):
-        """Mismas esquinas para el vidrio y para el contenido: la barrita es píldora, la tarjeta 22 px."""
+        """Same corners for the glass and the content: the bar is a pill, the card 22 px."""
         r = h / 2 if h <= 64 else 22.0
         if GlassView is not None:
             self.vidrio_panel.setCornerRadius_(r)
@@ -495,7 +495,7 @@ class App(NSObject):
         self.lado = "izquierda" if f.origin.x + f.size.width / 2 < pf.origin.x + pf.size.width / 2 else "derecha"
         motor.guardar_ajuste("lado", self.lado)
         if self.burbuja is None:
-            return  # sin píldora: la tarjeta se queda donde la sueltes
+            return  # no pill: the card stays where you drop it
         burbuja, tarjeta, _ = self.rects()
         self.js(self.vista_panel, f"document.body.dataset.lado = {json.dumps(self.lado)}")
         self.animar(self.burbuja, burbuja)
@@ -546,7 +546,7 @@ class App(NSObject):
         elif accion == "estado":
             self.avisarEstado()
 
-    # utilidades
+    # helpers
     @objc.python_method
     def js(self, vista, codigo):
         vista.evaluateJavaScript_completionHandler_(codigo, None)
@@ -569,12 +569,12 @@ class App(NSObject):
         p.setAllowsMultipleSelection_(True)
         p.setCanChooseDirectories_(False)
         p.setAllowedFileTypes_(["mp3", "m4a", "wav", "aac", "ogg", "opus", "flac", "mp4", "mov", "webm", "caf", "aiff"])
-        p.setMessage_("Elige audios o videos para transcribir")
+        p.setMessage_("Choose audio or video files to transcribe")
         if p.runModal() == 1:
             return [str(u.path()) for u in p.URLs()]
         return []
 
-    # ciclo de vida
+    # lifecycle
     def applicationShouldHandleReopen_hasVisibleWindows_(self, app, visibles):
         self.abrir_ventana()
         return True
@@ -607,33 +607,33 @@ def menus(app_obj):
         barra.addItem_(raiz)
 
     menu("Grabadora", [
-        ("Acerca de Grabadora", "orderFrontStandardAboutPanel:", ""),
+        ("About Grabadora", "orderFrontStandardAboutPanel:", ""),
         ("-", None, ""),
-        ("Grabar rápido  ⌃⌥⌘G", "grabarConAtajo:", "", app_obj),
-        ("Mostrar ventana", "mostrarVentana:", "0", app_obj),
+        ("Quick Record  ⌃⌥⌘G", "grabarConAtajo:", "", app_obj),
+        ("Show Window", "mostrarVentana:", "0", app_obj),
         ("-", None, ""),
-        ("Ocultar Grabadora", "hide:", "h"),
-        ("Salir de Grabadora", "terminate:", "q"),
+        ("Hide Grabadora", "hide:", "h"),
+        ("Quit Grabadora", "terminate:", "q"),
     ])
-    menu("Edición", [
-        ("Deshacer", "undo:", "z"),
-        ("Rehacer", "redo:", "Z"),
+    menu("Edit", [
+        ("Undo", "undo:", "z"),
+        ("Redo", "redo:", "Z"),
         ("-", None, ""),
-        ("Cortar", "cut:", "x"),
-        ("Copiar", "copy:", "c"),
-        ("Pegar", "paste:", "v"),
-        ("Seleccionar todo", "selectAll:", "a"),
+        ("Cut", "cut:", "x"),
+        ("Copy", "copy:", "c"),
+        ("Paste", "paste:", "v"),
+        ("Select All", "selectAll:", "a"),
     ])
-    menu("Ventana", [
-        ("Minimizar", "performMiniaturize:", "m"),
-        ("Cerrar", "performClose:", "w"),
+    menu("Window", [
+        ("Minimize", "performMiniaturize:", "m"),
+        ("Close", "performClose:", "w"),
     ])
     NSApp.setMainMenu_(barra)
 
 
 def main():
     info = NSBundle.mainBundle().infoDictionary()
-    info["CFBundleName"] = "Grabadora"  # que el menú no diga «Python»
+    info["CFBundleName"] = "Grabadora"  # so the menu doesn't say "Python"
 
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
@@ -658,12 +658,12 @@ def main():
 
     if "--fondo" not in sys.argv:
         delegado.abrir_ventana()
-    if "--demo-texto" in sys.argv:  # para revisar la tarjeta con texto sin grabar
+    if "--demo-texto" in sys.argv:  # for testing: the card with text, without recording
         def demo():
             delegado.mostrarPanel(grabar=False)
-            delegado.js(delegado.vista_panel, "texto = 'Oye, mañana a las diez tengo junta con el cliente nuevo. Acuérdate de mandarle la propuesta antes y de revisar los anuncios que están pausados.'; $('#duracion').textContent = '0:14'; pintarTexto(); poner('listo');")
+            delegado.js(delegado.vista_panel, "texto = 'Hey, tomorrow at ten I have a meeting with the new client. Remember to send them the proposal beforehand and to check the paused ads.'; $('#duracion').textContent = '0:14'; pintarTexto(); poner('listo');")
         AppHelper.callLater(1.5, demo)
-    if "--mostrar" in sys.argv:  # para revisar el cajón sin grabar
+    if "--mostrar" in sys.argv:  # for testing: the drawer, without recording
         AppHelper.callLater(1.5, lambda: delegado.mostrarPanel(grabar=False))
         if "--esconder" in sys.argv:
             AppHelper.callLater(4, delegado.cerrar_panel)
