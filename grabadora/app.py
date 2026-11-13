@@ -46,7 +46,7 @@ TITLED, CLOSABLE, MINI, RESIZABLE = 1 << 0, 1 << 1, 1 << 2, 1 << 3
 FULL_CONTENT = 1 << 15
 NONACTIVATING = 1 << 7
 BORDERLESS = 0
-ALL_SPACES, FULLSCREEN_AUX = 1 << 0, 1 << 8
+ALL_SPACES, MOVE_TO_ACTIVE_SPACE, FULLSCREEN_AUX = 1 << 0, 1 << 1, 1 << 8
 FLOATING_LEVEL = 3
 SIZE_ALL = 2 | 16  # flexible width and height
 
@@ -255,6 +255,8 @@ class App(NSObject):
         win.setReleasedWhenClosed_(False)
         win.setDelegate_(self)
         win.setFrameAutosaveName_("GrabadoraVentana")
+        # Always open on the desktop (Space) you're on, not the one it was first shown in.
+        win.setCollectionBehavior_(MOVE_TO_ACTIVE_SPACE)
         # Tall title bar (like Finder on macOS 26): the traffic lights sit inside the sidebar.
         barra = NSToolbar.alloc().initWithIdentifier_("grabadora")
         barra.setShowsBaselineSeparator_(False)
