@@ -461,6 +461,13 @@ class Api:
         return ok
 
 
+def al_frente(ventana):
+    """Shows a window on the desktop you're on. After days of monitors and Spaces coming and going, macOS can leave
+    an all-Spaces window stuck on none of them: setting its behaviour again puts it back on the current one."""
+    ventana.setCollectionBehavior_(ALL_SPACES | STATIONARY | FULLSCREEN_AUX)
+    ventana.orderFrontRegardless()
+
+
 def grabadora_corriendo():
     return len(NSRunningApplication.runningApplicationsWithBundleIdentifier_("com.vareliuu.grabadora")) > 0
 
@@ -584,7 +591,10 @@ class App(NSObject):
         animar(self.barra, self.marcoBarra(), 0.32)
 
     def espacioCambio_(self, _):
-        if self.barra_visible and self.barraEnOtraPantalla():
+        if not self.barra_visible:
+            return
+        al_frente(self.barra)  # make sure it came along to this desktop
+        if self.barraEnOtraPantalla():
             self.traerBarra()
 
     @objc.python_method
@@ -715,7 +725,7 @@ class App(NSObject):
                 self.lado = lado
                 self.aplicarLado()
             self.barra.setFrame_display_(self.marcoBarra(None, True), False)
-            self.barra.orderFrontRegardless()
+            al_frente(self.barra)
             animar(self.barra, self.marcoBarra(), 0.42)
         else:
             self.cerrarTarjeta()
@@ -797,7 +807,7 @@ class App(NSObject):
         else:
             self.tarjeta.setFrame_display_(rect, True)
             self.tarjeta.setAlphaValue_(1.0)
-            self.tarjeta.orderFrontRegardless()
+            al_frente(self.tarjeta)
 
     @objc.python_method
     def altoTarjeta(self, h):
@@ -872,6 +882,8 @@ class App(NSObject):
                 self.ultimo_spotify = datos.spotify() if datos.spotify_abierto() else {"abierto": False}
                 if n % 30 == 0:
                     datos.contar_tokens()
+                if n % 30 == 15 and not grabadora_corriendo():  # keep ⌃⌥⌘G alive if Grabadora was closed
+                    subprocess.Popen(["open", "-g", "-a", "/Applications/Grabadora.app", "--args", "--fondo"])
                 if n % 5 == 0 or self.ultimo_spotify.get("estado") == "playing":
                     self.empujarEstado()
             except Exception as e:  # noqa: BLE001
