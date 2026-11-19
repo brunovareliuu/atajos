@@ -15,6 +15,7 @@ from AppKit import (
     NSApp,
     NSApplication,
     NSAnimationContext,
+    NSApplicationActivationPolicyAccessory,
     NSApplicationActivationPolicyRegular,
     NSBackingStoreBuffered,
     NSColor,
@@ -283,6 +284,7 @@ class App(NSObject):
 
     @objc.python_method
     def abrir_ventana(self, id_=None):
+        NSApp.setActivationPolicy_(NSApplicationActivationPolicyRegular)  # in the Dock only while the window is open
         NSApp.activateIgnoringOtherApps_(True)
         self.ventana.makeKeyAndOrderFront_(None)
         if id_:
@@ -290,6 +292,8 @@ class App(NSObject):
 
     def windowShouldClose_(self, win):
         win.orderOut_(None)  # close = hide; the hotkey stays alive
+        # Back to the background: no Dock icon. Dictation lives in the Atajos bar and ⌃⌥⌘G.
+        NSApp.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
         return False
 
     # ---------- mic pill + dictation card ----------
@@ -645,7 +649,9 @@ def main():
     info["CFBundleName"] = "Grabadora"  # so the menu doesn't say "Python"
 
     app = NSApplication.sharedApplication()
-    app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
+    # In the background (--fondo, at login or opened by Atajos) there's no Dock icon: you dictate from the bar.
+    app.setActivationPolicy_(NSApplicationActivationPolicyAccessory if "--fondo" in sys.argv
+                             else NSApplicationActivationPolicyRegular)
     icono = AQUI / "icono.png"
     if icono.exists():
         app.setApplicationIconImage_(NSImage.alloc().initWithContentsOfFile_(str(icono)))

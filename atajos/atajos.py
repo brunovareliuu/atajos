@@ -882,8 +882,6 @@ class App(NSObject):
                 self.ultimo_spotify = datos.spotify() if datos.spotify_abierto() else {"abierto": False}
                 if n % 30 == 0:
                     datos.contar_tokens()
-                if n % 30 == 15 and not grabadora_corriendo():  # keep ⌃⌥⌘G alive if Grabadora was closed
-                    subprocess.Popen(["open", "-g", "-a", "/Applications/Grabadora.app", "--args", "--fondo"])
                 if n % 5 == 0 or self.ultimo_spotify.get("estado") == "playing":
                     self.empujarEstado()
             except Exception as e:  # noqa: BLE001
