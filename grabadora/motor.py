@@ -83,8 +83,10 @@ class Api:
         self._fijo = ""          # text already committed (chunks closed at a pause)
         self._tentativo = ""     # the latest bit, which can still change
         self._ultimo_vivo = 0.0
+        self._ultimo_trozo = 0.0  # when the microphone last delivered audio
         # All MLX work runs on a single thread: MLX doesn't get along with several.
         threading.Thread(target=self._trabajador, daemon=True).start()
+        threading.Thread(target=self._vigilar_mic, daemon=True).start()
 
     # ---------- internal helpers ----------
     def _guardar(self):
@@ -217,35 +219,100 @@ class Api:
         self._corte, self._fijo, self._tentativo = 0, "", ""
         self._trozos = []
         self._nivel_actual = 0.0
-
-        def cb(indata, frames, t, status):
-            self._trozos.append(indata[:, 0].copy())
-            self._nivel_actual = float(np.sqrt(np.mean(indata[:, 0] ** 2)))
-
-        try:
-            self._stream = sd.InputStream(samplerate=TASA, channels=1, dtype="float32", callback=cb)
-            self._stream.start()
-        except Exception as e:  # noqa: BLE001
-            self._stream = None
-            return {"ok": False, "error": f"Couldn't open the microphone: {e}"}
+        stream, error = self._abrir_mic(self._trozos, self._sesion)
+        if stream is None:
+            return {"ok": False, "error": f"Couldn't open the microphone: {error}"}
+        self._stream = stream
         self._inicio = time.time()
         self._avisar("grabacion", True)
         return {"ok": True}
+
+    def _abrir_mic(self, trozos, sesion):
+        """Opens the microphone and returns (stream, error). It never blocks for more than a few seconds.
+
+        The callback writes into `trozos` (the list of this recording, not whatever self._trozos is later), so a
+        stream that CoreAudio refuses to close can't leak audio into the next recording.
+        """
+        def cb(indata, frames, t, status):
+            trozos.append(indata[:, 0].copy())
+            self._ultimo_trozo = time.time()
+            if self._sesion == sesion:
+                self._nivel_actual = float(np.sqrt(np.mean(indata[:, 0] ** 2)))
+
+        caja = {}
+
+        def abrir():
+            try:
+                # A fixed block (50 ms): some devices hand out 1 ms buffers, about 1000 Python callbacks a second.
+                s = sd.InputStream(samplerate=TASA, channels=1, dtype="float32", blocksize=TASA // 20, callback=cb)
+                s.start()
+            except Exception as e:  # noqa: BLE001
+                caja["error"] = e
+                return
+            if caja.get("tarde"):  # we gave up waiting: don't leave the mic open
+                self._soltar_mic(s)
+            else:
+                caja["stream"] = s
+
+        self._ultimo_trozo = time.time()
+        hilo = threading.Thread(target=abrir, daemon=True)
+        hilo.start()
+        hilo.join(6)
+        if "stream" in caja:
+            return caja["stream"], None
+        caja["tarde"] = True
+        return None, caja.get("error") or "the microphone isn't responding"
+
+    def _soltar_mic(self, stream):
+        """Closes a stream in the background. CoreAudio sometimes never returns from stopping a stream (the input
+        device changed, another app reconfigured it…); that must not freeze dictation or lose the recording."""
+        def cerrar():
+            try:
+                stream.abort()
+                stream.close()
+            except Exception as e:  # noqa: BLE001
+                print("mic close:", e)
+
+        threading.Thread(target=cerrar, daemon=True).start()
+
+    def _vigilar_mic(self):
+        """If the microphone goes quiet mid-recording (no audio blocks at all for 3 s), reopen it and keep going."""
+        while True:
+            time.sleep(1)
+            try:
+                viejo = self._stream
+                if viejo is None or time.time() - self._ultimo_trozo < 3:
+                    continue
+                sesion, trozos = self._sesion, self._trozos
+                print("mic stalled: reopening")
+                nuevo, error = self._abrir_mic(trozos, sesion)
+                if self._stream is viejo and self._sesion == sesion and nuevo is not None:
+                    self._stream = nuevo
+                    self._soltar_mic(viejo)
+                elif nuevo is not None:  # the recording ended while we were reopening
+                    self._soltar_mic(nuevo)
+                else:
+                    print("mic reopen failed:", error)
+                    self._ultimo_trozo = time.time() + 5  # try again in a while, not every second
+            except Exception as e:  # noqa: BLE001
+                print("mic watchdog:", e)
 
     def nivel(self):
         return {"nivel": self._nivel_actual, "segundos": time.time() - self._inicio if self._stream else 0}
 
     def detener(self, idioma=""):
-        if not self._stream:
+        stream = self._stream
+        if not stream:
             return None
-        self._stream.stop()
-        self._stream.close()
+        # Take the audio first and let go of the stream without waiting for it: if closing the microphone hangs,
+        # the recording is already safe and you can dictate again.
         self._stream = None
         self._sesion += 1
-        self._avisar("grabacion", False)
         vivo = (self._fijo + " " + self._tentativo).strip()
-        audio = np.concatenate(self._trozos) if self._trozos else np.zeros(0, dtype=np.float32)
-        self._trozos = []
+        trozos, self._trozos = list(self._trozos), []
+        self._soltar_mic(stream)
+        self._avisar("grabacion", False)
+        audio = np.concatenate(trozos) if trozos else np.zeros(0, dtype=np.float32)
         if len(audio) < TASA * 0.5:
             return {"descartado": True}
         nombre = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
@@ -258,12 +325,11 @@ class Api:
         return self._nuevo(ruta, len(audio) / TASA, idioma, "grabado", vivo)
 
     def cancelar(self):
-        if self._stream:
-            self._stream.stop()
-            self._stream.close()
-            self._stream = None
+        stream, self._stream = self._stream, None
         self._sesion += 1
         self._trozos = []
+        if stream:
+            self._soltar_mic(stream)
         self._avisar("grabacion", False)
         return True
 

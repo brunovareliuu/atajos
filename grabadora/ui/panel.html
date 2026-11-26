@@ -129,9 +129,11 @@ function dibujar() {
 async function empezar() {
   if (ocupado) return; ocupado = true;
   try {
-    if (await api.grabando()) { poner('inactivo', 'Already recording in the window'); return; }
-    const r = await api.empezar(idioma());
-    if (!r.ok) { poner('inactivo', 'No microphone'); return; }
+    // Already recording (started in the window, or this card lost track of it): show it, so the next press stops it.
+    if (!(await api.grabando())) {
+      const r = await api.empezar(idioma());
+      if (!r.ok) { poner('inactivo', 'No microphone'); return; }
+    }
     actual = null; texto = ''; niveles = []; segs = 0; poner('grabando');
     $('#copiar').classList.remove('copiado'); $('#copiarTxt').textContent = 'Copy';
     clearInterval(tPoll);
