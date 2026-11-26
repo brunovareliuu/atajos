@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/images/hero.png" alt="Atajos: una barrita de vidrio en la orilla de la pantalla de tu Mac con tu uso de Claude, Spotify, portapapeles, archivos, AirDrop y sesiones de Claude Code" width="900"></p>
+<p align="center"><img src="docs/images/hero.png" alt="Ledge: una barrita de vidrio en la orilla de la pantalla de tu Mac con tu uso de Claude, Spotify, portapapeles, archivos, AirDrop y sesiones de Claude Code" width="900"></p>
 
-<h1 align="center">Atajos</h1>
+<h1 align="center">Ledge</h1>
 
 <p align="center">
 Una barrita de vidrio con acciones rápidas, pegada a la orilla de la pantalla de tu Mac,<br>
@@ -19,10 +19,10 @@ Este repo tiene dos apps nativas de Mac que trabajan juntas.
 
 | | App | Atajo | Qué hace |
 |---|---|---|---|
-| ▤ | **Atajos** | <kbd>⌃⌥⌘A</kbd> orilla derecha · <kbd>⌃⌥⌘Q</kbd> orilla izquierda | Una barrita pegada a la orilla de la pantalla. Pasas el mouse por un ícono y sale su tarjeta. |
+| ▤ | **Ledge** | <kbd>⌃⌥⌘A</kbd> orilla derecha · <kbd>⌃⌥⌘Q</kbd> orilla izquierda | Una barrita pegada a la orilla de la pantalla. Pasas el mouse por un ícono y sale su tarjeta. |
 | ● | **Grabadora** | <kbd>⌃⌥⌘G</kbd> | Graba y transcribe con Whisper en tu Mac. El texto aparece mientras hablas. |
 
-### Atajos: la barrita
+### Ledge: la barrita
 
 - **Uso de Claude**: tu sesión de 5 horas y tu límite semanal, con la hora a la que se reinicia cada uno, más los tokens que llevas. El anillo del ícono de Claude se va llenando.
 - **Spotify**: qué suena, un anillo con el avance y botones de reproducir, pausar y saltar.
@@ -49,14 +49,14 @@ Este repo tiene dos apps nativas de Mac que trabajan juntas.
 Necesitas macOS 13 o más nuevo en Apple Silicon, y Python 3.10+. Se recomienda [uv](https://docs.astral.sh/uv/), pero no es obligatorio.
 
 ```bash
-git clone https://github.com/brunovareliuu/atajos.git
-cd atajos
+git clone https://github.com/brunovareliuu/ledge.git
+cd ledge
 ./atajos/install.sh      # arma /Applications/Atajos.app
 ./grabadora/install.sh   # arma /Applications/Grabadora.app
 open -a Atajos; open -a Grabadora --args --fondo
 ```
 
-Cada script crea su `.venv`, arma la `.app` con su ícono y agrega un LaunchAgent para que se abra al iniciar sesión. Así los atajos siempre funcionan.
+Cada script crea su `.venv`, arma la `.app` con su ícono y agrega un LaunchAgent para que se abra al iniciar sesión. Así los atajos siempre funcionan. (La app de Ledge se sigue armando como `Atajos.app`, que es el nombre que ve macOS.)
 
 La primera vez:
 
@@ -65,13 +65,13 @@ La primera vez:
 
 ### Uso de Claude, por la vía soportada
 
-Claude Code le pasa los límites de tu plan (`rate_limits.five_hour` y `seven_day`) a su barra de estado. Atajos los lee de ahí, sin tokens y sin tocar el llavero. Agrega esto a `~/.claude/settings.json`:
+Claude Code le pasa los límites de tu plan (`rate_limits.five_hour` y `seven_day`) a su barra de estado. Ledge los lee de ahí, sin tokens y sin tocar el llavero. Agrega esto a `~/.claude/settings.json`:
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "/ruta/a/atajos/atajos/statusline.sh",
+    "command": "/ruta/a/ledge/atajos/statusline.sh",
     "padding": 0
   }
 }

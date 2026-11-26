@@ -1,6 +1,6 @@
-<p align="center"><img src="docs/images/hero.png" alt="Atajos: a glass bar on the edge of your Mac screen with your Claude usage, Spotify, clipboard, files, AirDrop and Claude Code sessions" width="900"></p>
+<p align="center"><img src="docs/images/hero.png" alt="Ledge: a glass bar on the edge of your Mac screen with your Claude usage, Spotify, clipboard, files, AirDrop and Claude Code sessions" width="900"></p>
 
-<h1 align="center">Atajos</h1>
+<h1 align="center">Ledge</h1>
 
 <p align="center">
 A glass quick-actions bar that lives on the edge of your Mac screen,<br>
@@ -19,10 +19,10 @@ This repo has two small native Mac apps that work together.
 
 | | App | Shortcut | What it does |
 |---|---|---|---|
-| ▤ | **Atajos** | <kbd>⌃⌥⌘A</kbd> right edge · <kbd>⌃⌥⌘Q</kbd> left edge | A bar glued to the edge of the screen. Hover an icon and its card slides out. |
+| ▤ | **Ledge** | <kbd>⌃⌥⌘A</kbd> right edge · <kbd>⌃⌥⌘Q</kbd> left edge | A bar glued to the edge of the screen. Hover an icon and its card slides out. |
 | ● | **Grabadora** | <kbd>⌃⌥⌘G</kbd> | Records and transcribes with Whisper on your Mac. The text appears while you talk. |
 
-### Atajos: the bar
+### Ledge: the bar
 
 - **Claude Usage**: your current 5-hour session and weekly limit, with the time each one resets, plus the tokens you've used. The ring around the Claude icon fills up as you go.
 - **Spotify**: what's playing, a progress ring and play, pause and skip controls.
@@ -49,14 +49,14 @@ This repo has two small native Mac apps that work together.
 You need macOS 13 or later on Apple Silicon, and Python 3.10+. [uv](https://docs.astral.sh/uv/) is recommended but optional.
 
 ```bash
-git clone https://github.com/brunovareliuu/atajos.git
-cd atajos
+git clone https://github.com/brunovareliuu/ledge.git
+cd ledge
 ./atajos/install.sh      # builds /Applications/Atajos.app
 ./grabadora/install.sh   # builds /Applications/Grabadora.app
 open -a Atajos; open -a Grabadora --args --fondo
 ```
 
-Each script creates its own `.venv`, builds the `.app` with its icon and adds a LaunchAgent so it opens when you log in. That way the shortcuts always work.
+Each script creates its own `.venv`, builds the `.app` with its icon and adds a LaunchAgent so it opens when you log in. That way the shortcuts always work. (The Ledge app is still built as `Atajos.app`, which is the name macOS shows.)
 
 The first time:
 
@@ -65,13 +65,13 @@ The first time:
 
 ### Claude usage, the supported way
 
-Claude Code passes your plan limits (`rate_limits.five_hour` and `seven_day`) to its status line. Atajos reads them from there, with no tokens and no Keychain. Add this to `~/.claude/settings.json`:
+Claude Code passes your plan limits (`rate_limits.five_hour` and `seven_day`) to its status line. Ledge reads them from there, with no tokens and no Keychain. Add this to `~/.claude/settings.json`:
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "/path/to/atajos/atajos/statusline.sh",
+    "command": "/path/to/ledge/atajos/statusline.sh",
     "padding": 0
   }
 }
